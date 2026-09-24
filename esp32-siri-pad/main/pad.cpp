@@ -30,8 +30,8 @@ static void report_locked(){
   unsigned n=2;uint16_t b=(armed?buttons:0)|touch;
   if(b&0x8)r[n++]=0x28;
   if(b&0x100)r[n++]=0x2c; // Remote Play/Pause -> keyboard Space
-  if(touch&0x1000)r[n++]=0x50;
-  if(touch&0x400)r[n++]=0x4f;
+  if((b&0x4)||(touch&0x1000))r[n++]=0x50; // Volume Down / screen Left
+  if((b&0x2)||(touch&0x400))r[n++]=0x4f; // Volume Up / screen Right
  }
  if(!memcmp(r,last_report,8))return;
  if(hidused==64){ // Fail closed if the host stops consuming reports.

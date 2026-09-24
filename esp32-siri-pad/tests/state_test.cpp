@@ -57,5 +57,15 @@ int main(){
  reset();pad_remote_buttons(0x100);drain();pad_remote_connected(false);r=drain();assert(r.size()==1&&r[0]==Report{});pad_remote_connected(true);pad_remote_buttons(0x100);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(0x100);assert(drain().back()==space);
  // USB loss also clears Space until a full release after reconnect.
  pad_usb_connected(false);pad_usb_connected(true);assert(drain().back()==Report{});pad_remote_buttons(0x100);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(0x100);assert(drain().back()==space);pad_remote_buttons(0);assert(drain().back()==Report{});
- puts("PASS: 20 state, source-isolation, shortcut pulse and disconnect scenarios");
+ // Volume keys hold cursor arrows and release, without shortcut modifiers.
+ for(auto entry:std::array<std::array<uint16_t,2>,2>{{{{4,0x50}},{{2,0x4f}}}}){
+  reset();Report arrow{};arrow[2]=entry[1];pad_remote_buttons(entry[0]);pad_remote_buttons(entry[0]);r=drain();assert(r.size()==1&&r[0]==arrow);pad_remote_buttons(0);assert(drain().back()==Report{});
+  // Touch and remote share one HID usage; releasing either keeps the other held.
+  pad_touch_key(entry[1],true);drain();pad_remote_buttons(entry[0]);assert(drain().empty());pad_touch_key(entry[1],false);assert(drain().empty());pad_remote_buttons(0);assert(drain().back()==Report{});
+  // BLE disconnect releases the arrow and reconnect suppresses a held key.
+  pad_remote_buttons(entry[0]);drain();pad_remote_connected(false);assert(drain().back()==Report{});pad_remote_connected(true);pad_remote_buttons(entry[0]);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(entry[0]);assert(drain().back()==arrow);
+  // USB reconnect also requires release before another arrow press.
+  pad_usb_connected(false);pad_usb_connected(true);assert(drain().back()==Report{});pad_remote_buttons(entry[0]);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(entry[0]);assert(drain().back()==arrow);
+ }
+ puts("PASS: 20 baseline scenarios plus volume-arrow hold, overlap and disconnect checks");
 }
