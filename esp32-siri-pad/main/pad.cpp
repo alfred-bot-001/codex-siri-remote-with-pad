@@ -29,6 +29,7 @@ static void report_locked(){
   if(state.source!=MIC_OFF)r[0]=0x40; // HID Right Alt / right Option
   unsigned n=2;uint16_t b=(armed?buttons:0)|touch;
   if(b&0x8)r[n++]=0x28;
+  if(b&0x100)r[n++]=0x2c; // Remote Play/Pause -> keyboard Space
   if(touch&0x1000)r[n++]=0x50;
   if(touch&0x400)r[n++]=0x4f;
  }

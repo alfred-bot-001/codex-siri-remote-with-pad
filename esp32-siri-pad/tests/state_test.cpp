@@ -51,5 +51,11 @@ int main(){
  pad_usb_connected(false);pad_shortcut(PAD_ACTION_CHATGPT);assert(drain().empty());pad_usb_connected(true);r=drain();assert(r.size()==1&&r[0]==Report{}&&status().last_app==PAD_ACTION_NONE);
  // Refuse a pulse atomically if the report queue has insufficient space.
  reset();for(int i=0;i<62;i++)pad_touch_key(0x28,i%2==0);pad_shortcut(PAD_ACTION_CHATGPT);r=drain();assert(r.size()==62&&r.back()==Report{});for(auto q:r)assert(q[0]==0);
- puts("PASS: 17 state, source-isolation, shortcut pulse and disconnect scenarios");
+ // Play/Pause is an ordinary Space key with held-state deduplication.
+ reset();pad_remote_buttons(0x100);pad_remote_buttons(0x100);r=drain();Report space{};space[2]=0x2c;assert(r.size()==1&&r[0]==space);pad_remote_buttons(0);r=drain();assert(r.size()==1&&r[0]==Report{});
+ // BLE loss releases Space; a held key on reconnect stays suppressed.
+ reset();pad_remote_buttons(0x100);drain();pad_remote_connected(false);r=drain();assert(r.size()==1&&r[0]==Report{});pad_remote_connected(true);pad_remote_buttons(0x100);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(0x100);assert(drain().back()==space);
+ // USB loss also clears Space until a full release after reconnect.
+ pad_usb_connected(false);pad_usb_connected(true);assert(drain().back()==Report{});pad_remote_buttons(0x100);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(0x100);assert(drain().back()==space);pad_remote_buttons(0);assert(drain().back()==Report{});
+ puts("PASS: 20 state, source-isolation, shortcut pulse and disconnect scenarios");
 }
