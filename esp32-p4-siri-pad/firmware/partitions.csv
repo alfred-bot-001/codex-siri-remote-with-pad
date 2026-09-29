@@ -1,0 +1,9 @@
+# Preserve factory board partition offsets; only factory app at 0x200000 may be replaced.
+# Name, Type, SubType, Offset, Size, Flags
+nvsfactory, data, nvs, 0x9000,   200K,
+nvs,        data, nvs, 0x3b000,  840K,
+otadata,    data, ota, 0x10d000, 8K,
+phy_init,   data, phy, 0x10f000, 4K,
+model,      data, spiffs, 0x110000, 960K,
+factory,    app,  factory, 0x200000, 8M,
+storage,    data, spiffs, 0xa00000, 6M,
