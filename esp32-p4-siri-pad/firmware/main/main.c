@@ -13,6 +13,7 @@
 #include "remote.h"
 #include "usb_keyboard.h"
 #include "audio_stream.h"
+#include "app_icons.h"
 
 LV_FONT_DECLARE(font_cn28);
 static const char *TAG = "siri-pad-p4";
@@ -186,6 +187,18 @@ static lv_obj_t *button(lv_obj_t *parent,const char *value,int x,int y,int w,int
     if(cb)lv_obj_add_event_cb(o,cb,LV_EVENT_CLICKED,arg);
     return o;
 }
+static void app_button_content(lv_obj_t *app,const lv_image_dsc_t *icon) {
+    lv_obj_t *title=lv_obj_get_child(app,0);
+    lv_obj_set_align(title,LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(title,105,29);
+    lv_obj_set_width(title,250);
+    lv_obj_set_style_text_align(title,LV_TEXT_ALIGN_LEFT,0);
+    lv_obj_t *image=lv_image_create(app);
+    lv_image_set_src(image,icon);
+    lv_obj_set_pos(image,29,45);
+    lv_obj_set_style_image_recolor(image,lv_color_hex(DARK),0);
+    lv_obj_set_style_image_recolor_opa(image,LV_OPA_COVER,0);
+}
 static void touch_diagnostic(lv_timer_t *timer){
     (void)timer;static bool pressed;
     for(lv_indev_t *indev=lv_indev_get_next(NULL);indev;indev=lv_indev_get_next(indev)){
@@ -313,9 +326,12 @@ static void create_ui(void){
     lv_obj_t *app_gpt=button(home,"ChatGPT",40,42,386,145,WHITE,DARK,touch_mapping,(void*)(intptr_t)REM_LEFT);
     lv_obj_t *app_claude=button(home,"Claude",447,42,386,145,WHITE,DARK,touch_mapping,(void*)(intptr_t)REM_RIGHT);
     lv_obj_t *app_chrome=button(home,"Chrome",854,42,386,145,WHITE,DARK,touch_chrome,NULL);
-    home_left_note=label(app_gpt,"",27,99,330,MUTED);
-    home_right_note=label(app_claude,"",27,99,330,MUTED);
-    label(app_chrome,"Ctrl+Opt+Cmd+B",27,99,330,MUTED);
+    app_button_content(app_gpt,&app_icon_openai);
+    app_button_content(app_claude,&app_icon_claude);
+    app_button_content(app_chrome,&app_icon_chrome);
+    home_left_note=label(app_gpt,"",105,91,250,MUTED);
+    home_right_note=label(app_claude,"",105,91,250,MUTED);
+    label(app_chrome,"Ctrl+Opt+Cmd+B",105,91,250,MUTED);
     button(home,"空格",53,259,303,119,WHITE,DARK,touch_key,(void*)(uintptr_t)0x2c);
     home_mic_button=button(home,"麦克风",577,252,126,126,BLUE,WHITE,touch_microphone,NULL);
     lv_obj_set_style_radius(home_mic_button,63,0);
