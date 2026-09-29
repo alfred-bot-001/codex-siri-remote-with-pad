@@ -51,7 +51,7 @@
 | 目录 | 内容与验证范围 |
 |---|---|
 | [esp32-siri-pad](esp32-siri-pad/README.md) | 当前 ESP-IDF 触屏固件：USB 键盘、UAC2 麦克风、板载 Opus 解码、双麦克风切换、中文触屏界面 |
-| [esp32-p4-siri-pad](esp32-p4-siri-pad/README.md) | 新 5 寸 P4 板的 1280×720 横屏交互原型与蓝牙连接设置设计；尚未移植、烧录或实机验收 |
+| [esp32-p4-siri-pad](esp32-p4-siri-pad/README.md) | 新 5 寸 P4 板的 1280×720 横屏交互原型，含蓝牙连接和按键映射设置；尚未移植、烧录或实机验收 |
 | [esp32-siri-test](esp32-siri-test/README.md) | 早期 Arduino 蓝牙与麦克风串口验证程序，保留用于协议排查 |
 | [siri-usb-bridge](siri-usb-bridge/README.md) | 树莓派 USB gadget 原型及固定版本蓝牙接收器；因供电问题暂停实机推进 |
 
