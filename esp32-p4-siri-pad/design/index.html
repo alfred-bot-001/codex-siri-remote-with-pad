@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Siri Voice Pad · 5 寸横屏界面原型</title>
+<style>
+  :root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",sans-serif;color:#142235;background:#dfe5eb;font-synthesis:none}
+  *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px}
+  .frame{width:min(1280px,100%);aspect-ratio:16/9;background:#f7f8fa;border:10px solid #1e2633;border-radius:28px;box-shadow:0 28px 90px #1b2f4b33;position:relative;overflow:hidden;display:flex;flex-direction:column}
+  button{font:inherit;border:0;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:4px solid #77a7ff;outline-offset:3px}button:active{transform:scale(.985)}
+  header{height:89px;flex:none;display:flex;align-items:center;padding:0 38px;border-bottom:1px solid #e7eaf0;gap:22px}
+  .brand{font-size:26px;font-weight:750;letter-spacing:-.5px}.prototype{font-size:13px;color:#8090a2;background:#e9edf2;border-radius:8px;padding:6px 10px}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .connection{height:54px;background:#fff;border:1px solid #e3e7ee;border-radius:15px;display:flex;align-items:center;gap:12px;padding:0 17px;color:#253447;font-weight:650;box-shadow:0 3px 12px #25344708}
+  .bt-symbol{color:#245bff;font-size:27px;line-height:1}.dot{width:9px;height:9px;border-radius:50%;background:#23bf80;display:inline-block}.dot.off{background:#9da9b7}.dot.search{background:#f2a541}
+  .usb{height:54px;padding:0 17px;border-radius:15px;background:#e9f7ef;color:#277650;display:flex;align-items:center;gap:9px;font-weight:650}.usb.off{background:#f1f2f4;color:#718095}
+  main{flex:1;display:grid;grid-template-columns:285px 1fr 365px;gap:20px;padding:22px 34px 16px;min-height:0}
+  .panel{background:#fff;border:1px solid #e8ebf1;border-radius:24px;box-shadow:0 5px 22px #1b2f4b08;padding:23px;min-height:0}
+  .eyebrow{font-size:15px;color:#8390a0;font-weight:700;letter-spacing:2px;margin-bottom:16px}
+  .app-btn{width:100%;height:104px;text-align:left;border-radius:19px;padding:17px 21px;margin-bottom:14px;background:#ecf7f3;color:#173e35;display:flex;flex-direction:column;justify-content:center;gap:7px;border:2px solid transparent}
+  .app-btn.claude{background:#f8efe9;color:#543b31}.app-btn.selected{border-color:#189f7b;background:#f2faf7}.app-btn.claude.selected{border-color:#c87957;background:#fdf6f1}.app-name{font-size:26px;font-weight:750}.app-note{font-size:15px;opacity:.68}
+  .small-key{width:100%;height:76px;border-radius:18px;background:#eef2ff;color:#2253cf;font-weight:700;font-size:20px;margin-top:7px}
+  .mic-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative}
+  .mic-ring{width:192px;height:192px;border-radius:50%;background:#e6edff;display:grid;place-items:center;padding:15px;margin-top:-8px}
+  .mic{width:100%;height:100%;border-radius:50%;background:#245bff;color:#fff;display:grid;place-items:center;box-shadow:0 13px 28px #245bff33}.mic svg{width:68px;height:68px}.mic.active{background:#ee684f;box-shadow:0 0 0 10px #ffdfda,0 13px 28px #ec66434d}.mic.active svg{animation:breath 1.4s ease-in-out infinite}
+  @keyframes breath{50%{transform:scale(1.08)}}
+  .mic-state{font-size:27px;font-weight:750;margin-top:16px}.mic-sub{font-size:16px;color:#7e8b9c;text-align:center;max-width:300px;line-height:1.5}
+  .controls{display:flex;flex-direction:column}.key-row{display:grid;grid-template-columns:1fr 1fr;gap:13px}.key{height:108px;border-radius:18px;background:#f1f4f8;font-size:52px;font-weight:500;color:#1c2938}.key.enter{height:130px;width:100%;background:#245bff;color:#fff;font-size:29px;font-weight:750;margin-top:14px;box-shadow:0 10px 21px #245bff2c}
+  .key.space{height:79px;width:100%;background:#f1f4f8;font-size:19px;font-weight:700;margin-top:14px}.key:disabled,.app-btn:disabled,.small-key:disabled,.mic:disabled{opacity:.45;cursor:default}
+  .controls .hint{font-size:14px;color:#8b97a5;line-height:1.55;margin-top:auto;padding-top:12px}
+  footer{height:60px;flex:none;display:flex;align-items:center;padding:0 40px;border-top:1px solid #e7eaf0;color:#7b899b;font-size:14px;gap:20px}.footer-value{color:#47586d;font-weight:650}.footer-right{margin-left:auto}
+  .scrim{position:absolute;inset:0;background:#14223565;display:none;z-index:3}.scrim.open{display:block}
+  .drawer{position:absolute;right:0;top:0;bottom:0;width:510px;background:#f8f9fb;z-index:4;box-shadow:-18px 0 50px #14223530;transform:translateX(103%);transition:transform .25s ease;display:flex;flex-direction:column}.drawer.open{transform:translateX(0)}
+  .drawer-header{height:92px;display:flex;align-items:center;padding:0 28px;gap:14px;border-bottom:1px solid #e5e9ef}.drawer-title{font-size:27px;font-weight:750}.close{width:47px;height:47px;background:#e9edf2;border-radius:12px;font-size:24px;margin-left:auto;color:#516073}
+  .drawer-body{padding:27px;overflow:auto;flex:1}.setting-card{background:#fff;border:1px solid #e4e8ef;border-radius:19px;padding:19px 21px;margin-bottom:17px}.setting-label{font-size:14px;font-weight:750;letter-spacing:1px;color:#8794a4;margin-bottom:10px}.device-title{font-size:21px;font-weight:730}.device-detail{font-size:14px;color:#78889a;margin-top:8px;line-height:1.45}.setting-actions{display:flex;gap:10px;margin-top:19px}.action{height:54px;border-radius:13px;padding:0 18px;font-weight:700;background:#eaf0ff;color:#245bda;min-width:112px}.action.primary{background:#245bff;color:#fff}.action.danger{background:#fff0ee;color:#d15d4b}.action:disabled{opacity:.45;cursor:default}
+  .scan-head{display:flex;align-items:center;justify-content:space-between;margin:28px 3px 12px;font-size:18px;font-weight:740}.scan-head button{background:#eaf0ff;color:#245bda;border-radius:11px;padding:10px 15px;font-size:15px;font-weight:700}
+  .candidate{width:100%;padding:18px 20px;background:#fff;border:1px solid #e4e8ef;border-radius:15px;text-align:left;margin-bottom:10px;display:flex;align-items:center;gap:14px}.candidate.selected{border:2px solid #245bff}.candidate strong{font-size:18px}.candidate small{font-size:13px;color:#8693a1;display:block;margin-top:4px}.candidate .signal{margin-left:auto;color:#2dae7c;font-size:13px}
+  .empty{color:#8592a2;font-size:15px;line-height:1.55;background:#fff;border:1px dashed #ccd5e0;border-radius:15px;padding:22px;margin-bottom:12px}
+  .drawer-note{font-size:14px;color:#79899b;line-height:1.65;margin:18px 2px}.confirm{background:#fff5f3;border:1px solid #f0c9c1;padding:14px;border-radius:13px;color:#a74331;font-size:14px;line-height:1.5;margin-top:13px}
+  @media(max-width:900px){body{padding:0}.frame{border-width:0;border-radius:0;width:100vw;height:100vh;aspect-ratio:auto}header{padding:0 18px}.prototype,.usb{display:none}main{padding:14px;gap:10px;grid-template-columns:27% 39% 34%}.panel{padding:14px}.app-btn{padding:9px;height:88px}.app-name{font-size:20px}.app-note{font-size:12px}.mic-ring{width:min(18vw,145px);height:min(18vw,145px)}.key{height:82px}.key.enter{height:100px}.key.space{height:65px}.drawer{width:min(510px,100%)}}
+</style>
+</head>
+<body>
+<div class="frame" role="application" aria-label="Siri Voice Pad 5 寸横屏界面原型">
+  <header><div class="brand">语音输入</div><div class="prototype">5 寸横屏 · 交互原型</div><div class="header-right"><div class="usb" id="usb">▣ <span>电脑已连接</span></div><button class="connection" id="open-settings" aria-label="打开蓝牙设置"><span class="bt-symbol">ᛒ</span><span>Apple TV 遥控器</span><span class="dot" id="bt-dot"></span><span id="bt-short">已连接</span><span aria-hidden="true">›</span></button></div></header>
+  <main>
+    <section class="panel" aria-label="应用和输入法"><div class="eyebrow">应用</div><button class="app-btn selected" id="gpt"><span class="app-name">ChatGPT</span><span class="app-note">唤起 / 隐藏 · 遥控器左键</span></button><button class="app-btn claude" id="claude"><span class="app-name">Claude</span><span class="app-note">唤起 / 隐藏 · 遥控器右键</span></button><div class="eyebrow" style="margin-top:12px">输入</div><button class="small-key" id="input">输入法切换　⌘ 空格</button></section>
+    <section class="panel mic-panel" aria-label="麦克风"><div class="eyebrow" style="position:absolute;top:23px;left:23px">麦克风</div><div class="mic-ring"><button class="mic" id="mic" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="23" y="7" width="18" height="32" rx="9" fill="currentColor" stroke="none"/><path d="M15 31a17 17 0 0 0 34 0M32 49v8M23 57h18"/></svg></button></div><div class="mic-state" id="mic-state">准备就绪</div><div class="mic-sub" id="mic-sub">点按图标使用板载麦克风<br>按住遥控器语音键使用遥控器麦克风</div></section>
+    <section class="panel controls" aria-label="键盘按键"><div class="eyebrow">键盘</div><div class="key-row"><button class="key" id="left" aria-label="左箭头">←</button><button class="key" id="right" aria-label="右箭头">→</button></div><button class="key enter" id="enter">↵　回车</button><button class="key space" id="space">空格</button><div class="hint">遥控器减号 / 加号：左右移动<br>中央确认：回车　播放 / 暂停：空格</div></section>
+  </main>
+  <footer><span>遥控器语音键</span><span class="footer-value">右 Option + 遥控器麦克风</span><span class="footer-right" id="toast">就绪</span></footer>
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-label="蓝牙连接设置" aria-hidden="true"><div class="drawer-header"><span class="bt-symbol">ᛒ</span><span class="drawer-title">蓝牙连接</span><button class="close" id="close-settings" aria-label="关闭蓝牙设置">×</button></div><div class="drawer-body"><div class="setting-card"><div class="setting-label">当前遥控器</div><div class="device-title" id="device-title">Apple TV 遥控器</div><div class="device-detail" id="device-detail">已连接 · 可接收按键与遥控器麦克风</div><div class="setting-actions"><button class="action primary" id="connect">重新连接</button><button class="action" id="disconnect">断开</button><button class="action danger" id="forget">移除配对</button></div><div class="confirm" id="confirm" hidden>移除后需要重新配对遥控器。<div class="setting-actions"><button class="action danger" id="confirm-forget">确定移除</button><button class="action" id="cancel-forget">取消</button></div></div></div><div class="scan-head"><span>附近的遥控器</span><button id="scan">搜索设备</button></div><div id="candidates"></div><div class="drawer-note">将遥控器设为配对模式后搜索。只显示符合 Apple TV 遥控器特征的设备；点击设备后再连接。连接成功后，下次开机自动重连。</div></div></aside>
+</div>
+<script>
+// Browser-only interaction prototype. Real BLE and USB callbacks belong in the P4 firmware.
+const $=id=>document.getElementById(id);
+let connected=true,known=true,scanning=false,selected=false,boardMic=false,remoteMic=false;
+function toast(message){$('toast').textContent=message;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').textContent='就绪',2400)}
+function render(){
+ $('bt-dot').className='dot '+(connected?'':scanning?'search':'off');
+ $('bt-short').textContent=connected?'已连接':scanning?'搜索中':'未连接';
+ $('device-title').textContent=known?'Apple TV 遥控器':'未配对遥控器';
+ $('device-detail').textContent=connected?'已连接 · 可接收按键与遥控器麦克风':known?'已配对 · 当前未连接':'请搜索并选择遥控器';
+ $('connect').textContent=known?'重新连接':'连接所选设备';$('connect').disabled=!known&&!selected;
+ $('disconnect').disabled=!connected;$('forget').disabled=!known;$('scan').disabled=scanning;
+ $('scan').textContent=scanning?'正在搜索…':'搜索设备';
+ $('mic').classList.toggle('active',boardMic||remoteMic);
+ $('mic-state').textContent=remoteMic?'遥控器麦克风输入中':boardMic?'板载麦克风输入中':'准备就绪';
+ $('mic-sub').innerHTML=remoteMic?'松开遥控器语音键即停止':boardMic?'再次点按麦克风图标停止':'点按图标使用板载麦克风<br>按住遥控器语音键使用遥控器麦克风';
+ $('candidates').innerHTML=scanning?'<div class="empty">正在查找附近的 Apple TV 遥控器…</div>':selected?'<button class="candidate selected" id="candidate"><span class="bt-symbol">ᛒ</span><span><strong>Apple TV 遥控器</strong><small>已发现 · 等待连接</small></span><span class="signal">信号良好</span></button>':'<div class="empty">尚未发现其他遥控器。点击“搜索设备”开始查找。</div>';
+}
+function drawer(open){$('drawer').classList.toggle('open',open);$('scrim').classList.toggle('open',open);$('drawer').setAttribute('aria-hidden',String(!open))}
+$('open-settings').onclick=()=>drawer(true);$('close-settings').onclick=$('scrim').onclick=()=>drawer(false);
+$('scan').onclick=()=>{scanning=true;selected=false;render();setTimeout(()=>{scanning=false;selected=true;render();toast('发现 Apple TV 遥控器')},1800)};
+$('connect').onclick=()=>{connected=true;known=true;selected=false;render();toast('遥控器已连接（模拟）')};
+$('disconnect').onclick=()=>{connected=false;remoteMic=false;render();toast('遥控器已断开（模拟）')};
+$('forget').onclick=()=>$('confirm').hidden=false;$('cancel-forget').onclick=()=>$('confirm').hidden=true;
+$('confirm-forget').onclick=()=>{connected=false;known=false;selected=false;remoteMic=false;$('confirm').hidden=true;render();toast('配对记录已移除（模拟）')};
+$('mic').onclick=()=>{boardMic=!boardMic;remoteMic=false;render()};
+$('gpt').onclick=()=>{boardMic=remoteMic=false;$('gpt').classList.add('selected');$('claude').classList.remove('selected');render();toast('发送 ⌃⌥⌘G（模拟）')};
+$('claude').onclick=()=>{boardMic=remoteMic=false;$('claude').classList.add('selected');$('gpt').classList.remove('selected');render();toast('发送 ⌃⌥⌘C（模拟）')};
+$('input').onclick=()=>{boardMic=remoteMic=false;render();toast('发送 ⌘空格（模拟）')};
+for(const [id,key] of [['left','←'],['right','→'],['enter','回车'],['space','空格']])$(''+id).onclick=()=>toast('发送 '+key+'（模拟）');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')drawer(false);if(e.key==='v'&&connected){remoteMic=true;boardMic=false;render()}});
+document.addEventListener('keyup',e=>{if(e.key==='v'){remoteMic=false;render()}});
+render();if(location.hash==='#bluetooth')drawer(true);
+</script>
+</body>
+</html>
