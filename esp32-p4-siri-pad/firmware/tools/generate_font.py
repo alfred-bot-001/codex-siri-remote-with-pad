@@ -1,23 +1,29 @@
-"""Rebuild the OFL Source Han Sans subset used by the P4 settings UI."""
+"""Rebuild the OFL Source Han Sans Bold subset used by the P4 UI."""
 import hashlib
 import pathlib
 import re
 import subprocess
 import sys
+import tempfile
+import urllib.request
 
 project = pathlib.Path(__file__).resolve().parents[1]
-source = project / "managed_components/lvgl__lvgl/scripts/built_in_font/SourceHanSansSC-Normal.otf"
+source = pathlib.Path(tempfile.gettempdir()) / "SourceHanSansSC-Bold.otf"
+source_url = "https://raw.githubusercontent.com/adobe-fonts/source-han-sans/release/OTF/SimplifiedChinese/SourceHanSansSC-Bold.otf"
+source_sha256 = "df2b90f5bcc6d01dfc964cec5f6d535d6b6aebd26ed7fd79a9c1b3f2112fcb6b"
 output = project / "main/font_cn28.c"
 html = project.parents[0] / "design/index.html"
 converter = sys.argv[1] if len(sys.argv) > 1 else "lv_font_conv"
-if hashlib.sha256(source.read_bytes()).hexdigest() != "1ee89e1669362dee13851129c0a8a791a87521eb4148e5efbf5d26596738e25b":
-    raise SystemExit("The Source Han Sans file differs from the pinned LVGL copy")
+if not source.exists():
+    urllib.request.urlretrieve(source_url, source)
+if hashlib.sha256(source.read_bytes()).hexdigest() != source_sha256:
+    raise SystemExit("The Source Han Sans Bold file differs from the pinned Adobe copy")
 text = html.read_text() + "".join(p.read_text() for p in (project / "main").glob("*.c") if p.name != "font_cn28.c")
 symbols = "".join(sorted(set(re.findall(r"[\u2000-\u206f\u3000-\u303f\u3400-\u9fff\uff00-\uffef]", text))))
 subprocess.run([converter, "--font", str(source), "--size", "28", "--bpp", "4", "--format", "lvgl",
                 "--range", "0x20-0x7E", "--symbols", symbols, "--no-compress", "--lv-include",
                 "lvgl.h", "--lv-font-name", "font_cn28", "-o", str(output)], check=True)
 lines = output.read_text().splitlines()
-lines = [" * Source: Source Han Sans SC, SIL OFL 1.1; see licenses/SourceHanSansSC-OFL.txt" if line.startswith(" * Opts:") else line for line in lines]
+lines = [" * Source: Source Han Sans SC Bold, SIL OFL 1.1; see licenses/SourceHanSansSC-OFL.txt" if line.startswith(" * Opts:") else line for line in lines]
 output.write_text("\n".join(lines).rstrip() + "\n")
 print(f"Generated {len(symbols)} CJK and punctuation glyphs")

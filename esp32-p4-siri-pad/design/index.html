@@ -75,15 +75,36 @@
   .mapping-list,.mapping-row{border-color:#d4d5cd}.editor{background:#f8f7f3;border-radius:10px}.editor label{color:#484b44;font-weight:750}
   .editor select,.modifier,.editor-preview{background:#e8e8e2;color:#272824;border-color:#c8c9c1;border-radius:7px;font-weight:650}
   .modifier.active{background:#f4e9e3;color:#8b3b22}.scrim,.editor-scrim{background:#27282485}
+  /* The control layout follows the Braun reference: three app keys above three primary controls. */
+  main.home-page{display:flex;flex-direction:column;gap:0;padding:29px 40px 22px}
+  main.home-page.hidden{display:none}
+  .home-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .home-apps .app-btn{height:146px;margin:0;padding:27px 29px;background:#f8f7f3;color:#272824;justify-content:center;gap:14px;font-weight:800}
+  .home-apps .app-btn.claude{background:#f8f7f3;color:#272824}
+  .home-apps .app-name{font-size:32px;line-height:1.05}
+  .home-apps .app-note{font-size:20px;letter-spacing:.3px;color:#5b5e56}
+  .home-apps .app-btn.selected,.home-apps .app-btn.claude.selected{background:#efeee9;border-color:#85877e;box-shadow:inset 0 2px 5px #2728241c}
+  .home-controls{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;gap:38px;margin-top:51px}
+  .home-controls .key{width:100%;height:120px;display:flex;align-items:center;justify-content:center;gap:18px;font-size:29px;background:#f8f7f3}
+  .home-controls .key.enter{margin:0;background:#30322d;color:#fff;border-color:#30322d;box-shadow:0 4px 0 #171814;font-size:29px}
+  .home-controls .key.space{margin:0;height:120px;font-size:29px;background:#f8f7f3}
+  .key-symbol{font-size:47px;line-height:1;font-weight:600}
+  .home-voice{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .home-voice .mic{width:124px;height:124px;flex:none}
+  .home-voice .mic svg{width:54px;height:54px}
+  .home-voice .mic-state{font-size:26px;margin:6px 0 0}
+  .home-voice .mic-sub{font-size:17px;max-width:none;line-height:1.4}
+  .home-hint{font-size:16px;color:#64665f;margin-top:auto;line-height:1.4;font-weight:650}
+  @media(max-width:900px){main.home-page{padding:19px 22px 18px}.home-apps{gap:11px}.home-apps .app-btn{height:122px;padding:16px}.home-apps .app-name{font-size:23px}.home-apps .app-note{font-size:15px}.home-controls{gap:17px;margin-top:25px}.home-controls .key,.home-controls .key.space{height:86px;font-size:19px}.home-controls .key.enter{font-size:19px}.key-symbol{font-size:34px}.home-voice .mic{width:85px;height:85px}.home-voice .mic svg{width:40px;height:40px}.home-voice .mic-state{font-size:20px}.home-voice .mic-sub{font-size:13px}.home-hint{font-size:13px}}
 </style>
 </head>
 <body>
 <div class="frame" role="application" aria-label="Siri Voice Pad 5 寸横屏界面原型">
   <header><div class="brand">语音输入</div><div class="prototype">5 寸横屏 · 交互原型</div><div class="header-right"><div class="usb" id="usb">▣ <span>电脑已连接</span></div><button class="connection" id="open-settings" aria-label="打开蓝牙设置"><span class="bt-symbol">ᛒ</span><span>Apple TV 遥控器</span><span class="dot" id="bt-dot"></span><span id="bt-short">已连接</span><span aria-hidden="true">›</span></button><button class="settings-launch" id="settings-launch">⚙ 设置</button></div></header>
   <main class="home-page" id="home-page">
-    <section class="panel" aria-label="应用和输入法"><div class="eyebrow">应用</div><button class="app-btn" id="gpt"><span class="app-name">ChatGPT</span><span class="app-note">唤起 / 隐藏 · 遥控器左键</span></button><button class="app-btn claude" id="claude"><span class="app-name">Claude</span><span class="app-note">唤起 / 隐藏 · 遥控器右键</span></button><div class="eyebrow" style="margin-top:12px">输入</div><button class="small-key" id="input">输入法切换　⌘ 空格</button></section>
-    <section class="panel mic-panel" aria-label="麦克风"><div class="eyebrow" style="position:absolute;top:23px;left:23px">麦克风</div><div class="mic-ring"><button class="mic" id="mic" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="23" y="7" width="18" height="32" rx="9" fill="currentColor" stroke="none"/><path d="M15 31a17 17 0 0 0 34 0M32 49v8M23 57h18"/></svg></button></div><div class="mic-state" id="mic-state">准备就绪</div><div class="mic-sub" id="mic-sub">点按图标使用板载麦克风<br>按住遥控器语音键使用遥控器麦克风</div></section>
-    <section class="panel controls" aria-label="键盘按键"><div class="eyebrow">键盘</div><div class="key-row"><button class="key" id="left" aria-label="左箭头">←</button><button class="key" id="right" aria-label="右箭头">→</button></div><button class="key enter" id="enter">↵　回车</button><button class="key space" id="space">空格</button><div class="hint">遥控器减号 / 加号：左右移动<br>中央确认：回车　播放 / 暂停：空格</div></section>
+    <section class="home-apps" aria-label="应用快捷键"><button class="app-btn" id="gpt"><span class="app-name">ChatGPT</span><span class="app-note">⌃ ⌥ ⌘ G</span></button><button class="app-btn claude" id="claude"><span class="app-name">Claude</span><span class="app-note">⌃ ⌥ ⌘ C</span></button><button class="app-btn" id="chrome"><span class="app-name">Chrome</span><span class="app-note">⌃ ⌥ ⌘ B</span></button></section>
+    <section class="home-controls" aria-label="键盘和语音控制"><button class="key space" id="space"><span class="key-symbol" aria-hidden="true">⎵</span>空格</button><div class="home-voice"><button class="mic" id="mic" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="23" y="7" width="18" height="32" rx="9" fill="currentColor" stroke="none"/><path d="M15 31a17 17 0 0 0 34 0M32 49v8M23 57h18"/></svg></button><div class="mic-state" id="mic-state">准备就绪</div><div class="mic-sub" id="mic-sub">点按使用板载麦克风</div></div><button class="key enter" id="enter"><span class="key-symbol" aria-hidden="true">↵</span>回车</button></section>
+    <div class="home-hint">遥控器：左 / 右唤起应用 · 减 / 加移动光标 · 小电视切换输入法</div>
   </main>
   <section class="settings-page" id="settings-page" aria-label="设置页面">
     <nav class="settings-nav"><div class="settings-nav-title">设置</div><button class="settings-tab active" id="tab-bluetooth">ᛒ　蓝牙连接</button><button class="settings-tab" id="tab-mapping">⌨　按键映射</button><button class="settings-back" id="settings-back">←　返回主页</button></nav>
@@ -138,10 +159,9 @@ function renderBluetooth(){
 }
 function renderMain(){
  $('mic').classList.toggle('active',boardMic||remoteMic);$('mic-state').textContent=remoteMic?'遥控器麦克风输入中':boardMic?'板载麦克风输入中':'准备就绪';
- $('mic-sub').innerHTML=remoteMic?'松开遥控器语音键即停止':boardMic?'再次点按麦克风图标停止':'点按图标使用板载麦克风<br>按住遥控器语音键使用遥控器麦克风';
- $('gpt').querySelector('.app-note').textContent='唤起 / 隐藏 · '+formatAction(mapping.remoteLeft);
- $('claude').querySelector('.app-note').textContent='唤起 / 隐藏 · '+formatAction(mapping.remoteRight);
- $('input').textContent='输入法切换　'+formatAction(mapping.tv);
+ $('mic-sub').textContent=remoteMic?'松开遥控器语音键即停止':boardMic?'再次点按麦克风停止':'点按使用板载麦克风';
+ $('gpt').querySelector('.app-note').textContent=formatAction(mapping.remoteLeft);
+ $('claude').querySelector('.app-note').textContent=formatAction(mapping.remoteRight);
  document.querySelector('.footer-value').textContent=formatAction(mapping.voice);
 }
 function renderMapping(){
@@ -185,10 +205,8 @@ $('editor-save').onclick=()=>{if(!validAction(editDraft)){$('editor-error').text
 $('reset-mapping').onclick=()=>{if(!confirm('恢复所有遥控器按键的默认映射？'))return;mapping=clone(defaultMapping);saveMapping();renderMapping();renderMain();toast('已恢复默认映射')};
 $('export-mapping').onclick=()=>{const blob=new Blob([JSON.stringify({version:1,mapping},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='siri-pad-p4-mapping.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('已导出映射配置')};
 $('mic').onclick=()=>{boardMic=!boardMic;remoteMic=false;renderMain()};
-$('gpt').onclick=()=>{boardMic=remoteMic=false;$('gpt').classList.add('selected');$('claude').classList.remove('selected');renderMain();toast('发送 '+formatAction(mapping.remoteLeft)+'（模拟）')};
-$('claude').onclick=()=>{boardMic=remoteMic=false;$('claude').classList.add('selected');$('gpt').classList.remove('selected');renderMain();toast('发送 '+formatAction(mapping.remoteRight)+'（模拟）')};
-$('input').onclick=()=>{boardMic=remoteMic=false;renderMain();toast('发送 '+formatAction(mapping.tv)+'（模拟）')};
-for(const [id,key] of [['left','←'],['right','→'],['enter','回车'],['space','空格']])$(id).onclick=()=>toast('发送 '+key+'（模拟）');
+for(const [id,key] of [['gpt','ChatGPT'],['claude','Claude'],['chrome','Chrome']])$(id).onclick=()=>{document.querySelectorAll('.home-apps .app-btn').forEach(button=>button.classList.toggle('selected',button.id===id));toast('发送 '+(key==='Chrome'?'⌃⌥⌘B':formatAction(mapping[id==='gpt'?'remoteLeft':'remoteRight']))+'（模拟）')};
+for(const [id,key] of [['enter','回车'],['space','空格']])$(id).onclick=()=>toast('发送 '+key+'（模拟）');
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeEditor();showSettings(null)}if(e.key==='v'&&connected){remoteMic=true;boardMic=false;renderMain()}});
 document.addEventListener('keyup',e=>{if(e.key==='v'){remoteMic=false;renderMain()}});
 renderBluetooth();renderMain();renderMapping();if(location.hash==='#bluetooth')showSettings('bluetooth');if(location.hash==='#mapping'||location.hash==='#editor')showSettings('mapping');if(location.hash==='#editor')openEditor('remoteLeft');

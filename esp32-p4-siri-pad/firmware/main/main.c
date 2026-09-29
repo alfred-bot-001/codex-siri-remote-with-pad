@@ -16,7 +16,7 @@
 
 LV_FONT_DECLARE(font_cn28);
 static const char *TAG = "siri-pad-p4";
-static const uint32_t BG=0xf7f8fa, WHITE=0xffffff, BLUE=0x245bff, DARK=0x142235, MUTED=0x7e8c9d, PALE=0xeaf0ff;
+static const uint32_t BG=0xefeee9, WHITE=0xf8f7f3, BLUE=0xdc531f, DARK=0x272824, MUTED=0x64665f, PALE=0xe5e5df;
 
 enum { REM_LEFT, REM_RIGHT, REM_SELECT, REM_PLAY, REM_MINUS, REM_PLUS, REM_TV, REM_VOICE,
        REM_UP, REM_DOWN, REM_BACK, REM_MUTE, REM_POWER, REM_COUNT };
@@ -36,7 +36,7 @@ static const uint8_t keys[]={0x2c,0x28,0x50,0x4f,0x52,0x51,0x2a,0x29,0x2b,
 static const char *key_names[]={"空格","回车","左箭头","右箭头","上箭头","下箭头","退格","Esc","Tab",
     "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 #define KEY_COUNT (sizeof(keys)/sizeof(keys[0]))
-static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*mapping_list,*notice,*home_left_note,*home_right_note,*home_tv_note,*usb_state,*home_mic_state,*home_mic_button,*home_mic_detail;
+static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*mapping_list,*notice,*home_left_note,*home_right_note,*usb_state,*home_mic_state,*home_mic_button,*home_mic_detail;
 static lv_obj_t *tab_bt,*tab_map,*reset_button,*editor,*editor_type,*editor_key,*editor_option,*editor_mods[4],*editor_preview,*keyboard_group;
 static int editing_index=-1;
 static map_entry_t draft;
@@ -95,8 +95,8 @@ static void bluetooth_refresh(lv_timer_t *timer){
     pad_audio_status_t audio;audio_stream_status(&audio);
     lv_label_set_text(home_mic_state,audio.source==PAD_MIC_OFF?"准备就绪":audio.source==PAD_MIC_BOARD?"板载麦克风输入中":"遥控器语音输入中");
     lv_label_set_text(home_mic_detail,audio.board_ready?"点按麦克风使用板载拾音":"板载麦克风初始化中");
-    lv_obj_set_style_bg_color(home_mic_button,lv_color_hex(audio.source!=PAD_MIC_OFF?BLUE:0xe6edff),0);
-    lv_obj_set_style_text_color(lv_obj_get_child(home_mic_button,0),lv_color_hex(audio.source!=PAD_MIC_OFF?WHITE:BLUE),0);
+    lv_obj_set_style_bg_color(home_mic_button,lv_color_hex(audio.source!=PAD_MIC_OFF?0x30322d:BLUE),0);
+    lv_obj_set_style_text_color(lv_obj_get_child(home_mic_button,0),lv_color_hex(WHITE),0);
     const char *states[]={"正在初始化","未连接","正在搜索","正在连接","正在配对","正在读取按键","已连接","连接失败"};
     lv_label_set_text(bt_state,states[s.phase]);
     lv_label_set_text(lv_obj_get_child(bt_header,0),s.phase==REMOTE_READY?"蓝牙已连接":states[s.phase]);
@@ -179,8 +179,8 @@ static lv_obj_t *label(lv_obj_t *parent,const char *value,int x,int y,int w,uint
     return o;
 }
 static lv_obj_t *button(lv_obj_t *parent,const char *value,int x,int y,int w,int h,uint32_t color,uint32_t text_color,lv_event_cb_t cb,void *arg) {
-    lv_obj_t *o=box(parent,x,y,w,h,color,15);lv_obj_add_flag(o,LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_bg_color(o,lv_color_hex(color==BLUE?0x1945c9:0xdce6ff),LV_STATE_PRESSED);
+    lv_obj_t *o=box(parent,x,y,w,h,color,8);lv_obj_add_flag(o,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_color(o,lv_color_hex(color==BLUE?0xb9421c:color==0x30322d?0x4a4c46:0xd8d8d0),LV_STATE_PRESSED);
     lv_obj_t *text=label(o,value,0,0,w,text_color);lv_obj_align(text,LV_ALIGN_CENTER,0,0);
     lv_obj_set_style_text_align(text,LV_TEXT_ALIGN_CENTER,0);
     if(cb)lv_obj_add_event_cb(o,cb,LV_EVENT_CLICKED,arg);
@@ -197,8 +197,7 @@ static void touch_diagnostic(lv_timer_t *timer){
 }
 static void inform(const char *message){lv_label_set_text(notice,message);ESP_LOGI(TAG,"UI: %s",message);}
 static void update_home_notes(void){char s[96];format_action(&mapping.entry[REM_LEFT],s,sizeof(s));lv_label_set_text(home_left_note,s);
-    format_action(&mapping.entry[REM_RIGHT],s,sizeof(s));lv_label_set_text(home_right_note,s);
-    format_action(&mapping.entry[REM_TV],s,sizeof(s));lv_label_set_text(home_tv_note,s);}
+    format_action(&mapping.entry[REM_RIGHT],s,sizeof(s));lv_label_set_text(home_right_note,s);}
 static void show_home(lv_event_t *e){(void)e;lv_obj_remove_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(settings,LV_OBJ_FLAG_HIDDEN);}
 static void select_tab(bool bluetooth){
     if(bluetooth){lv_obj_remove_flag(bt_page,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(map_page,LV_OBJ_FLAG_HIDDEN);}
@@ -230,6 +229,11 @@ static void touch_mapping(lv_event_t *e){
     ESP_LOGI(TAG,"touch mapping=%d type=%d key=%02x mods=%02x",index,mapping.entry[index].type,mapping.entry[index].key,mapping.entry[index].mods);
     send_entry(&mapping.entry[index]);
     inform(index==REM_LEFT?"已发送 ChatGPT 快捷键":index==REM_RIGHT?"已发送 Claude 快捷键":"已发送输入法快捷键");
+}
+static void touch_chrome(lv_event_t *e){
+    (void)e;
+    bool sent=usb_keyboard_send(hid_modifiers(MOD_CTRL|MOD_OPT|MOD_CMD),0x05);
+    inform(sent?"已发送 Chrome 快捷键 Ctrl+Opt+Cmd+B":"电脑键盘未连接，请使用 USB OTG 口");
 }
 static void editor_refresh(void);
 static void editor_close(lv_event_t *e){(void)e;if(editor){lv_obj_delete_async(editor);editor=NULL;}editing_index=-1;}
@@ -300,29 +304,33 @@ static void reset_mapping(lv_event_t *e){(void)e;if(!reset_armed){reset_armed=tr
     mapping_defaults();bool saved=mapping_save();mapping_render();update_home_notes();inform(saved?"已恢复默认映射":"恢复默认，但写入设备失败");}
 static void create_ui(void){
     root=lv_screen_active();lv_obj_set_style_bg_color(root,lv_color_hex(BG),0);lv_obj_remove_flag(root,LV_OBJ_FLAG_SCROLLABLE);
-    box(root,0,0,1280,86,WHITE,0);label(root,"语音输入",37,27,250,DARK);
-    box(root,706,16,185,54,0xf1f3f6,14);usb_state=label(root,"电脑未接入",727,29,165,MUTED);
-    bt_header=button(root,"蓝牙初始化",904,16,205,54,0xf1f3f6,MUTED,show_bt,NULL);
-    button(root,"设置",1122,16,124,54,PALE,BLUE,show_bt,NULL);
+    box(root,0,0,1280,86,WHITE,0);label(root,"桌面 AI 助手",37,27,330,DARK);
+    box(root,706,16,185,54,PALE,8);usb_state=label(root,"电脑未接入",727,29,165,MUTED);
+    bt_header=button(root,"蓝牙初始化",904,16,205,54,PALE,MUTED,show_bt,NULL);
+    button(root,"设置",1122,16,124,54,PALE,DARK,show_bt,NULL);
     home=box(root,0,86,1280,572,BG,0);settings=box(root,0,86,1280,572,BG,0);
-    // Home: application shortcuts, microphone, and large keyboard keys.
-    lv_obj_t *apps=box(home,33,20,278,532,WHITE,23);label(apps,"应用",24,22,220,MUTED);
-    button(apps,"ChatGPT",20,80,238,103,0xecf7f3,DARK,touch_mapping,(void*)(intptr_t)REM_LEFT);
-    home_left_note=label(apps,"",22,193,235,MUTED);
-    button(apps,"Claude",20,247,238,103,0xf8efe9,DARK,touch_mapping,(void*)(intptr_t)REM_RIGHT);
-    home_right_note=label(apps,"",22,358,235,MUTED);
-    button(apps,"输入法切换",20,431,238,75,PALE,BLUE,touch_mapping,(void*)(intptr_t)REM_TV);
-    home_tv_note=label(apps,"",22,506,235,MUTED);
-    lv_obj_t *mic=box(home,330,20,522,532,WHITE,23);label(mic,"麦克风",26,22,250,MUTED);
-    home_mic_button=button(mic,"麦克风",150,126,220,220,0xe6edff,BLUE,touch_microphone,NULL);
-    home_mic_state=label(mic,"准备就绪",147,369,300,DARK);
-    home_mic_detail=label(mic,"板载麦克风初始化中",64,417,430,MUTED);
-    lv_obj_t *control=box(home,870,20,377,532,WHITE,23);label(control,"键盘",23,22,300,MUTED);
-    button(control,"<",20,78,163,110,0xf1f4f8,DARK,touch_key,(void*)(uintptr_t)0x50);
-    button(control,">",194,78,163,110,0xf1f4f8,DARK,touch_key,(void*)(uintptr_t)0x4f);
-    button(control,"回车",20,204,337,130,BLUE,WHITE,touch_key,(void*)(uintptr_t)0x28);
-    button(control,"空格",20,350,337,78,0xf1f4f8,DARK,touch_key,(void*)(uintptr_t)0x2c);
-    label(control,"USB 键盘按键",20,454,350,MUTED);
+    // Braun home: three app keys above Space / voice / Return. Other remote mappings stay in settings.
+    lv_obj_t *app_gpt=button(home,"ChatGPT",40,42,386,145,WHITE,DARK,touch_mapping,(void*)(intptr_t)REM_LEFT);
+    lv_obj_t *app_claude=button(home,"Claude",447,42,386,145,WHITE,DARK,touch_mapping,(void*)(intptr_t)REM_RIGHT);
+    lv_obj_t *app_chrome=button(home,"Chrome",854,42,386,145,WHITE,DARK,touch_chrome,NULL);
+    home_left_note=label(app_gpt,"",27,99,330,MUTED);
+    home_right_note=label(app_claude,"",27,99,330,MUTED);
+    label(app_chrome,"Ctrl+Opt+Cmd+B",27,99,330,MUTED);
+    button(home,"空格",53,259,303,119,WHITE,DARK,touch_key,(void*)(uintptr_t)0x2c);
+    home_mic_button=button(home,"麦克风",577,252,126,126,BLUE,WHITE,touch_microphone,NULL);
+    lv_obj_set_style_radius(home_mic_button,63,0);
+    lv_label_set_text(lv_obj_get_child(home_mic_button,0),"");
+    // White microphone silhouette, drawn with LVGL objects so it works without an icon font.
+    box(home_mic_button,53,28,20,46,WHITE,10);
+    box(home_mic_button,40,63,6,22,WHITE,3);
+    box(home_mic_button,80,63,6,22,WHITE,3);
+    box(home_mic_button,44,81,38,6,WHITE,3);
+    box(home_mic_button,60,86,6,15,WHITE,3);
+    box(home_mic_button,48,99,30,6,WHITE,3);
+    button(home,"回车",924,259,303,119,0x30322d,WHITE,touch_key,(void*)(uintptr_t)0x28);
+    home_mic_state=label(home,"准备就绪",523,410,270,DARK);
+    home_mic_detail=label(home,"板载麦克风初始化中",428,453,460,MUTED);
+    label(home,"遥控器：左右唤起应用 · 减加移动光标 · 小电视切换输入法",40,527,1160,MUTED);
     // Settings: independent Bluetooth and mapping pages.
     lv_obj_t *nav=box(settings,33,20,246,532,WHITE,23);label(nav,"设置",25,27,190,DARK);
     tab_bt=button(nav,"蓝牙连接",20,105,206,70,PALE,BLUE,show_bt,NULL);
