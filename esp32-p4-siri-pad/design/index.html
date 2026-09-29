@@ -46,6 +46,35 @@
   .mapping-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}.mapping-toolbar .section-subtitle{margin:0}.mapping-actions{display:flex;gap:9px}.mapping-list{border:1px solid #e8ebf1;border-radius:17px;overflow:auto;max-height:432px}.mapping-row{display:grid;grid-template-columns:180px minmax(0,1fr) 78px;gap:15px;align-items:center;min-height:68px;padding:7px 14px;border-bottom:1px solid #edf0f3}.mapping-row:last-child{border-bottom:0}.mapping-row strong{font-size:17px}.mapping-row small{display:block;font-size:12px;color:#8d99a7;margin-top:3px}.mapping-value{font-size:17px;color:#245bda;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.edit-map{height:42px;border-radius:11px;background:#eaf0ff;color:#245bda;font-size:15px;font-weight:700}.mapping-note{font-size:13px;color:#8795a4;margin-top:13px;line-height:1.55}
   .editor-scrim{position:absolute;inset:0;background:#15264087;z-index:10;display:grid;place-items:center}.editor{width:min(555px,90%);background:#fff;border-radius:23px;padding:27px 30px;box-shadow:0 25px 75px #0e254b45}.editor-head{display:flex;align-items:center;gap:12px;margin-bottom:23px}.editor h2{font-size:24px;margin:0}.editor label{display:block;color:#617083;font-size:15px;font-weight:700;margin:17px 0 8px}.editor select{width:100%;height:53px;border:1px solid #dbe2eb;border-radius:12px;background:#f8fafc;font:inherit;font-size:17px;color:#213247;padding:0 13px}.modifier-row{display:flex;flex-wrap:wrap;gap:9px}.modifier{height:46px;padding:0 14px;border-radius:11px;background:#f0f3f7;color:#53647a;font-weight:700;border:2px solid transparent}.modifier.active{background:#eaf0ff;color:#245bda;border-color:#7298ff}.editor-preview{padding:14px 16px;margin-top:20px;border-radius:12px;background:#f1f5fa;color:#344962;font-weight:700}.editor-actions{display:flex;justify-content:flex-end;gap:11px;margin-top:23px}.editor-error{color:#c5443c;font-size:14px;margin-top:10px}
   @media(max-width:900px){body{padding:0}.frame{border-width:0;border-radius:0;width:100vw;height:100vh;aspect-ratio:auto}header{padding:0 18px}.prototype,.usb{display:none}main{padding:14px;gap:10px;grid-template-columns:27% 39% 34%}.panel{padding:14px}.app-btn{padding:9px;height:88px}.app-name{font-size:20px}.app-note{font-size:12px}.mic-ring{width:min(18vw,145px);height:min(18vw,145px)}.key{height:82px}.key.enter{height:100px}.key.space{height:65px}.drawer{width:min(510px,100%)}}
+  /* Braun direction: warm instrument casing, graphite controls, one orange voice action. */
+  :root{color:#272824;background:#d8d8d2;font-weight:600;font-synthesis:weight}
+  .frame{background:#efeee9;border-color:#292a27;border-radius:16px;box-shadow:0 28px 75px #2728242c}
+  button:focus-visible{outline-color:#dc531f}
+  header,footer,.drawer-header{border-color:#d4d5cd}
+  .brand{font-weight:800;letter-spacing:-.7px}
+  .prototype{color:#676962;background:#e5e5df;border-radius:5px;font-weight:700}
+  .connection,.settings-launch,.panel,.settings-nav,.settings-content,.setting-card,.candidate,.empty{background:#f8f7f3;border-color:#d4d5cd;box-shadow:0 2px 0 #d4d5cd;border-radius:10px;color:#272824}
+  .connection,.settings-launch,.usb{font-weight:700}
+  .bt-symbol{color:#41433e}.dot{background:#4c7553}.dot.search{background:#c9873c}
+  .usb{background:#e4eadf;color:#38583e;border:1px solid #cbd5c5;border-radius:7px}.usb.off{background:#e6e6e0;color:#676962}
+  .eyebrow,.setting-label{color:#666961;font-weight:800;letter-spacing:1.3px}
+  .app-btn,.app-btn.claude{background:#e8e8e2;color:#272824;border:1px solid #c8c9c1;border-radius:8px;box-shadow:0 3px 0 #c8c9c1}
+  .app-btn.selected,.app-btn.claude.selected{background:#f8f7f3;border-color:#676961;box-shadow:inset 0 2px 5px #27282420}
+  .app-name{font-weight:800}.app-note{opacity:1;color:#5b5e56;font-weight:650}
+  .small-key,.key,.key.space,.settings-back,.close{background:#e5e5df;color:#272824;border:1px solid #c8c9c1;border-radius:8px;box-shadow:0 3px 0 #c8c9c1;font-weight:750}
+  .mic-ring{background:#e4e3dd}.mic{background:#dc531f;box-shadow:0 4px 0 #a83b14,inset 0 1px 0 #ffffff55}.mic.active{background:#272824;box-shadow:0 0 0 9px #e5c2b3,0 4px 0 #11120f}
+  .mic-state{font-weight:800}.mic-sub,.controls .hint{color:#5d6058;font-weight:650}
+  .key{font-weight:700}.key.enter{background:#30322d;color:#fff;box-shadow:0 4px 0 #171814;border-color:#30322d;font-weight:800}
+  footer{color:#62655d}.footer-value{color:#30322d;font-weight:750}
+  .drawer{background:#efeee9;box-shadow:-18px 0 50px #27282430}.drawer-title,.settings-nav-title,.section-heading,.editor h2{font-weight:800}
+  .device-title,.scan-head,.mapping-row strong{font-weight:750}.device-detail,.drawer-note,.section-subtitle,.mapping-note,.candidate small{color:#5f625a;font-weight:600}
+  .action,.scan-head button,.edit-map,.settings-tab,.mapping-value{background:#e5e5df;color:#30322d;border-radius:7px;font-weight:750}
+  .action.primary,.scan-head button,.settings-tab.active,.edit-map{background:#30322d;color:#fff}
+  .action.danger{background:#f4e9e3;color:#a84424}.candidate.selected,.modifier.active{border-color:#dc531f}
+  .settings-launch.active{background:#30322d;color:#fff}.settings-tab{background:transparent;color:#484b44}
+  .mapping-list,.mapping-row{border-color:#d4d5cd}.editor{background:#f8f7f3;border-radius:10px}.editor label{color:#484b44;font-weight:750}
+  .editor select,.modifier,.editor-preview{background:#e8e8e2;color:#272824;border-color:#c8c9c1;border-radius:7px;font-weight:650}
+  .modifier.active{background:#f4e9e3;color:#8b3b22}.scrim,.editor-scrim{background:#27282485}
 </style>
 </head>
 <body>
