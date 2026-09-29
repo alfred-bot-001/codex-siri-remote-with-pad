@@ -11,6 +11,8 @@
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
+#include "usb_keyboard.h"
+#include "audio_stream.h"
 
 static const char *TAG="pad-remote";
 void pad_remote_buttons(uint16_t mask);
@@ -186,6 +188,7 @@ static int gap_event(struct ble_gap_event *event,void *arg){
             ESP_LOGI(TAG,"buttons=0x%04x",mask);
         }else if(audio_index>=0&&attr==reports[audio_index].value){
             portENTER_CRITICAL(&lock);status.audio_packets++;status.revision++;portEXIT_CRITICAL(&lock);
+            if(length<=100){uint8_t data[100];if(os_mbuf_copydata(event->notify_rx.om,0,length,data)==0)audio_stream_remote_packet(data,length);}
         }break;}
     default:break;
     }return 0;
@@ -273,7 +276,11 @@ static void diagnostic_task(void *arg){
             if(!strcmp(line,"status")){
                 remote_status_t s;remote_get_status(&s);
                 ESP_LOGI(TAG,"STATUS phase=%d driver=%d paired=%d peer=%s candidates=%d error=%d buttons=%04x reports=%lu audio=%lu",s.phase,s.driver_ready,s.paired,s.peer,s.count,s.error,s.buttons,(unsigned long)s.button_reports,(unsigned long)s.audio_packets);
+                usb_keyboard_diagnostics();
                 for(int i=0;i<s.count;i++)ESP_LOGI(TAG,"CANDIDATE %d %s RSSI=%d",i,s.candidates[i].address,s.candidates[i].rssi);
+            }else if(!strcmp(line,"usbtest")){
+                bool ok=usb_keyboard_send(0,0x73); // F24, reserved for diagnostics.
+                ESP_LOGI(TAG,"USB F24 test queued=%d",ok);
             }else if(!strcmp(line,"scan"))remote_command(REMOTE_SCAN,-1);
             else if(!strcmp(line,"reconnect"))remote_command(REMOTE_RECONNECT,-1);
             else if(!strcmp(line,"disconnect"))remote_command(REMOTE_DISCONNECT,-1);

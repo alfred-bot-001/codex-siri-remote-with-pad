@@ -9,9 +9,10 @@
 - 发现 HID 报告描述符，订阅 `0xfb` 按键与 `0xfa` 音频通知，并向 `0xf0` 写入 `0xaf` 启用报告。仅在订阅成功且链路加密后显示“已连接”。设置页显示按键掩码、报告计数和音频包计数。
 - 保存遥控器身份和蓝牙绑定到 P4 NVS；重启自动重连。设置页可以重连、断开和移除配对，移除需要在五秒内再次点按确认。扫描期间暂停自动重连，避免旧设备抢占搜索流程。
 - 按键映射页可编辑 13 个遥控器实体按键，保存到 `siri_pad/map_v1`，重启读取并校验；可恢复默认。
-- USB OTG 口模拟 HID 键盘。顶栏“电脑已连接”依据 USB 枚举回调显示；Mac 可识别为 `Siri Voice Pad P4 Keyboard`。屏幕左右箭头、回车、空格和应用快捷键可发送键盘报告。遥控器左/右键触发保存的 ChatGPT/Claude 快捷键，中央确认、播放/暂停、音量减/加、小电视键和语音键按当前映射输出。语音键当前仅模拟按住左/右 Option，**不传送麦克风音频**。
+- USB OTG 口模拟 HID 键盘。顶栏“电脑已连接”依据 USB 枚举回调显示。屏幕左右箭头、回车、空格和应用快捷键可发送键盘报告；遥控器左/右键触发保存的 ChatGPT/Claude 快捷键，中央确认、播放/暂停、音量减/加、小电视键和语音键按当前映射输出。发送与 USB 事件处理在不同任务运行，避免事件等待阻塞按键队列。
+- USB OTG 口同时声明 UAC 2.0 单声道 48 kHz 麦克风。按住遥控器语音键会按住配置的 Option 键并将遥控器 Opus 包解码为 PCM；屏幕麦克风可切换板载 ES7210 拾音，再点停止。麦克风图标随两种输入源改变。麦克风链路已编译、刷入，ES7210 初始化日志正常，但 Mac 的 UAC 枚举和实际语音录制仍待验证。
 
-**USB 麦克风输出、板载麦克风和遥控器音频解码仍未移植。** 收到的音频包目前仅用于链路验证，不会向电脑输出音频，也不保存录音。未识别的圆环上/下、返回、静音、电源键虽可在设置中编辑，但尚未确认其 BLE 掩码，不能视为已映射到 USB。
+未识别的圆环上/下、返回、静音、电源键虽可在设置中编辑，但尚未确认其 BLE 掩码，不能视为已映射到 USB。
 
 ## 配对与诊断
 
@@ -29,7 +30,7 @@ idf.py -B build/p4_ble \
   -D 'SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.rev3_x;sdkconfig.defaults.ble' build
 ```
 
-依赖由 `dependencies.lock` 固定，本次使用 ESP-Hosted 1.4.7、Wi-Fi Remote 0.14.5、TinyUSB 0.19.0~3。刷入前核对生成的配置为 P4 最低 revision 3.0、PSRAM 250 MHz、SDIO 4 位／20 MHz、C6 目标及 Hosted NimBLE VHCI；不能仅凭 defaults 文件认定配置已生效。
+依赖由 `dependencies.lock` 固定，本次使用 ESP-Hosted 1.4.7、Wi-Fi Remote 0.14.5、TinyUSB 0.19.0~3、USB Device UAC 1.3.1 和 ESP Audio Codec 2.3.0。刷入前核对生成的配置为 P4 最低 revision 3.0、PSRAM 250 MHz、SDIO 4 位／20 MHz、C6 目标及 Hosted NimBLE VHCI；不能仅凭 defaults 文件认定配置已生效。
 
 原理图核对后的 P4→C6 接线：CLK GPIO18、CMD GPIO19、D0 GPIO14、D1 GPIO15、D2 GPIO16、D3 GPIO17、C6 EN GPIO54。没有修改或重新刷写 C6 固件；实板原有固件返回能力 `0x0d`，包括 HCI over SDIO 和 BLE。
 
@@ -41,6 +42,6 @@ idf.py -B build/p4_ble \
 
 ## 验证边界
 
-已在实板验证：应用刷写哈希、1280×720 显示和触控驱动初始化、C6 SDIO 能力响应、蓝牙协议栈就绪、遥控器加密绑定、MTU 185、HID 通知订阅和保存身份后的自动重连；主动断开、扫描启动及 20 秒超时也已验证。2026-09-29 新固件刷入后，Mac 的 IOUSB 与 HID 列表识别出 `Siri Voice Pad P4 Keyboard`（VID 303a / PID 4015），UART 日志确认 USB mounted 与显示初始化。主动断开后遥控器可能需要按键唤醒才能重连。实物键入、快捷键、语音连续收包、完整触屏操作仍需用户配合验收；尚不能把订阅成功当作音频输出或全部按键验收。
+已在实板验证：应用刷写哈希、1280×720 显示和触控驱动初始化、C6 SDIO 能力响应、蓝牙协议栈就绪、遥控器加密绑定、MTU 185、HID 通知订阅和保存身份后的自动重连；主动断开、扫描启动及 20 秒超时也已验证。2026-09-29 早期键盘固件曾被 Mac 识别为 `Siri Voice Pad P4 Keyboard`（VID 303a / PID 4015），但按键队列诊断发现 USB 事件等待阻塞发送任务，已改为独立任务。新复合固件 PID 4016 已刷入，显示、UAC 驱动、ES7210 48 kHz 和 C6 均成功初始化。当前 Mac 未枚举到 OTG 口，因此新固件的键盘按键、UAC 录音、屏幕触摸命中仍未完成验收。主动断开后遥控器可能需要按键唤醒才能重连。
 
 字形子集来自 LVGL 附带的 Source Han Sans SC，许可在 `licenses/SourceHanSansSC-OFL.txt`。重新生成需组件管理器下载 LVGL 9.5 和 `lv_font_conv` 1.5.3，运行 `python tools/generate_font.py /path/to/lv_font_conv`。
