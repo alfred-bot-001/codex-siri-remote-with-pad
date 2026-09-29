@@ -10,6 +10,7 @@
 #include "lvgl.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/display.h"
+#include "remote.h"
 
 LV_FONT_DECLARE(font_cn28);
 static const char *TAG = "siri-pad-p4";
@@ -37,7 +38,52 @@ static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*mapping_list,*notice,*
 static lv_obj_t *tab_bt,*tab_map,*reset_button,*editor,*editor_type,*editor_key,*editor_option,*editor_mods[4],*editor_preview,*keyboard_group;
 static int editing_index=-1;
 static map_entry_t draft;
+static void inform(const char *message);
 static bool reset_armed;
+static lv_obj_t *bt_header,*bt_state,*bt_peer,*bt_detail,*bt_scan_note,*bt_candidates[REMOTE_CANDIDATES],*bt_forget;
+static uint32_t forget_until;
+static void bluetooth_action(lv_event_t *e){
+    remote_command_t cmd=(remote_command_t)(intptr_t)lv_event_get_user_data(e);
+    remote_status_t s;remote_get_status(&s);
+    if(cmd==REMOTE_SCAN&&(s.phase==REMOTE_READY||s.phase==REMOTE_PAIRING||s.phase==REMOTE_DISCOVERING||s.phase==REMOTE_CONNECTING)){
+        inform("请先断开当前遥控器，再搜索设备");return;
+    }
+    if(cmd==REMOTE_FORGET){
+        uint32_t now=lv_tick_get();
+        if(!forget_until||(int32_t)(forget_until-now)<=0){forget_until=now+5000;lv_label_set_text(lv_obj_get_child(bt_forget,0),"确认移除");return;}
+        forget_until=0;lv_label_set_text(lv_obj_get_child(bt_forget,0),"移除配对");
+    }
+    if(!remote_command(cmd,-1))inform("蓝牙正在初始化，请稍后再试");
+}
+static void bluetooth_connect(lv_event_t *e){
+    if(!remote_command(REMOTE_CONNECT,(int)(intptr_t)lv_event_get_user_data(e)))inform("设备列表已变化，请重新搜索");
+}
+static void bluetooth_refresh(lv_timer_t *timer){
+    (void)timer;remote_status_t s;remote_get_status(&s);
+    const char *states[]={"正在初始化","未连接","正在搜索","正在连接","正在配对","正在读取按键","已连接","连接失败"};
+    lv_label_set_text(bt_state,states[s.phase]);
+    lv_label_set_text(lv_obj_get_child(bt_header,0),s.phase==REMOTE_READY?"蓝牙已连接":states[s.phase]);
+    lv_label_set_text(bt_peer,s.peer[0]?s.peer:"尚未保存遥控器");
+    char detail[160];snprintf(detail,sizeof(detail),"C6 蓝牙：%s\n按键：%04X   已收：%lu\n音频包：%lu",s.driver_ready?"就绪":"初始化中",s.buttons,(unsigned long)s.button_reports,(unsigned long)s.audio_packets);
+    lv_label_set_text(bt_detail,detail);
+    lv_label_set_text(bt_scan_note,s.count?"点选设备连接并配对":s.phase==REMOTE_SCANNING?"搜索中，请让遥控器进入配对模式":"按住遥控器返回键与音量加键配对");
+    for(int i=0;i<REMOTE_CANDIDATES;i++){
+        if(i<s.count){char t[96];snprintf(t,sizeof(t),"%s  %d dBm",s.candidates[i].address,s.candidates[i].rssi);
+            lv_label_set_text(lv_obj_get_child(bt_candidates[i],0),t);lv_obj_remove_flag(bt_candidates[i],LV_OBJ_FLAG_HIDDEN);}
+        else lv_obj_add_flag(bt_candidates[i],LV_OBJ_FLAG_HIDDEN);
+    }
+    static int last_error;
+    static remote_phase_t last_phase=REMOTE_STARTING;
+    if(s.error&&s.error!=last_error){snprintf(detail,sizeof(detail),"蓝牙状态码：%d；可重新连接或搜索配对",s.error);inform(detail);}
+    else if(!s.error&&s.phase!=last_phase){
+        if(s.phase==REMOTE_READY)inform("遥控器已连接；USB 键盘与音频输出待接入");
+        else if(s.phase==REMOTE_CONNECTING)inform("正在连接遥控器");
+        else if(s.phase==REMOTE_SCANNING)inform("正在搜索，请让遥控器进入配对模式");
+        else if(s.phase==REMOTE_IDLE)inform("遥控器未连接，可搜索或重新连接");
+    }
+    last_error=s.error;last_phase=s.phase;
+    if(forget_until&&(int32_t)(forget_until-lv_tick_get())<=0){forget_until=0;lv_label_set_text(lv_obj_get_child(bt_forget,0),"移除配对");}
+}
 
 static bool valid_entry(const map_entry_t *e) {
     if(e->type==MAP_NONE)return true;
@@ -116,7 +162,6 @@ static void select_tab(bool bluetooth){
 }
 static void show_bt(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(true);}
 static void show_mapping(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(false);}
-static void bluetooth_unavailable(lv_event_t *e){(void)e;inform("蓝牙驱动尚未接入，此按钮暂不可用");}
 static void usb_unavailable(lv_event_t *e){(void)e;inform("USB 键盘与麦克风尚未接入");}
 static void editor_refresh(void);
 static void editor_close(lv_event_t *e){(void)e;if(editor){lv_obj_delete_async(editor);editor=NULL;}editing_index=-1;}
@@ -189,7 +234,7 @@ static void create_ui(void){
     root=lv_screen_active();lv_obj_set_style_bg_color(root,lv_color_hex(BG),0);lv_obj_remove_flag(root,LV_OBJ_FLAG_SCROLLABLE);
     box(root,0,0,1280,86,WHITE,0);label(root,"语音输入",37,27,250,DARK);
     box(root,706,16,185,54,0xf1f3f6,14);label(root,"电脑未接入",727,29,165,MUTED);
-    button(root,"蓝牙未连接",904,16,205,54,0xf1f3f6,MUTED,show_bt,NULL);
+    bt_header=button(root,"蓝牙初始化",904,16,205,54,0xf1f3f6,MUTED,show_bt,NULL);
     button(root,"设置",1122,16,124,54,PALE,BLUE,show_bt,NULL);
     home=box(root,0,86,1280,572,BG,0);settings=box(root,0,86,1280,572,BG,0);
     // Home: application shortcuts, microphone, and large keyboard keys.
@@ -217,23 +262,25 @@ static void create_ui(void){
     lv_obj_t *content=box(settings,298,20,949,532,WHITE,23);
     bt_page=box(content,0,0,949,532,WHITE,23);label(bt_page,"蓝牙连接",30,25,650,DARK);
     label(bt_page,"管理 Apple TV 遥控器配对与重连",30,71,800,MUTED);
-    lv_obj_t *device=box(bt_page,30,136,420,230,0xf8f9fb,18);
-    label(device,"当前遥控器",22,20,360,MUTED);label(device,"未连接",22,75,350,DARK);
-    label(device,"蓝牙驱动尚未移植到 P4",22,125,390,MUTED);
-    button(device,"重新连接",21,173,185,50,PALE,BLUE,bluetooth_unavailable,NULL);
-    button(device,"移除配对",218,173,185,50,0xffeeec,0xbb5b48,bluetooth_unavailable,NULL);
-    lv_obj_t *discover=box(bt_page,470,136,450,230,0xf8f9fb,18);
-    label(discover,"附近的遥控器",22,20,390,DARK);
-    label(discover,"尚不能扫描；需接入板载 C6 蓝牙",22,75,425,MUTED);
-    button(discover,"搜索设备",22,173,190,50,PALE,BLUE,bluetooth_unavailable,NULL);
-    label(bt_page,"当前固件只验证横屏、触控和按键配置保存。",32,411,875,MUTED);
+    lv_obj_t *device=box(bt_page,30,125,420,333,0xf8f9fb,18);
+    label(device,"当前遥控器",22,16,360,MUTED);bt_state=label(device,"正在初始化",22,59,350,DARK);
+    bt_peer=label(device,"",22,104,385,MUTED);bt_detail=label(device,"",22,148,390,MUTED);
+    button(device,"重连",15,269,118,50,PALE,BLUE,bluetooth_action,(void*)(intptr_t)REMOTE_RECONNECT);
+    button(device,"断开",143,269,118,50,PALE,BLUE,bluetooth_action,(void*)(intptr_t)REMOTE_DISCONNECT);
+    bt_forget=button(device,"移除配对",271,269,134,50,0xffeeec,0xbb5b48,bluetooth_action,(void*)(intptr_t)REMOTE_FORGET);
+    lv_obj_t *discover=box(bt_page,470,125,450,333,0xf8f9fb,18);
+    label(discover,"附近的遥控器",22,16,235,DARK);
+    button(discover,"搜索",316,10,114,50,PALE,BLUE,bluetooth_action,(void*)(intptr_t)REMOTE_SCAN);
+    bt_scan_note=label(discover,"",22,72,410,MUTED);
+    for(int i=0;i<REMOTE_CANDIDATES;i++)bt_candidates[i]=button(discover,"",15,125+i*50,420,45,PALE,BLUE,bluetooth_connect,(void*)(intptr_t)i);
+    label(bt_page,"连接后可验证遥控器按键；USB 与音频输出待接入。",30,478,890,MUTED);
     map_page=box(content,0,0,949,532,WHITE,23);label(map_page,"按键映射",30,25,500,DARK);
     label(map_page,"点按编辑，配置快捷键；保存到设备 NVS",30,71,850,MUTED);
     reset_button=button(map_page,"恢复默认",700,22,216,62,PALE,BLUE,reset_mapping,NULL);
     mapping_list=box(map_page,28,125,892,380,WHITE,15);lv_obj_add_flag(mapping_list,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(mapping_list,LV_DIR_VER);mapping_render();
     lv_obj_add_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(true);update_home_notes();
-    box(root,0,658,1280,62,WHITE,0);notice=label(root,"测试版：蓝牙、USB 和音频功能待移植",38,675,1150,MUTED);
+    box(root,0,658,1280,62,WHITE,0);notice=label(root,"蓝牙连接测试版：USB 键盘与音频输出待接入",38,675,1150,MUTED);
 }
 void app_main(void){
     mapping_load();
@@ -250,5 +297,7 @@ void app_main(void){
     ESP_LOGI(TAG,"Display resolution %d x %d; NVS %s",width,height,nvs_ready?"ready":"unavailable");
     if(width==1280&&height==720)create_ui();
     else{lv_obj_t *error=lv_label_create(lv_screen_active());lv_label_set_text(error,"Display rotation error");lv_obj_center(error);}
+    if(width==1280&&height==720)lv_timer_create(bluetooth_refresh,250,NULL);
     bsp_display_unlock();
+    remote_start();
 }

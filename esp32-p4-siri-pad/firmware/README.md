@@ -1,13 +1,45 @@
-# 5 寸 P4 Pad 横屏测试固件
+# 5 寸 P4 Pad：横屏界面与板载 C6 蓝牙
 
-这是 ESP32-P4-WIFI6-Touch-LCD-5（已探测芯片 revision v3.2）的**界面与按键设置测试版**。使用微雪 LCD5 BSP、HX8394 DSI、GT911 触控和 LVGL 9，在屏幕上构建 1280×720 横屏主页与设置页。
+适用 Waveshare ESP32-P4-WIFI6-Touch-LCD-5（本次实板 ESP32-P4 revision v3.2）。使用微雪 LCD5 BSP、HX8394 DSI、GT911 触控和 LVGL 9，显示 1280×720 横屏主页和设置页。
 
-蓝牙连接页目前显示真实的“未连接／驱动未接入”状态；搜索、重连等按钮只给出不可用提示。USB 键盘、USB 麦克风和遥控器音频也尚未移植，主页按钮只显示提示。这个版本用于验证屏幕、触控、中文字体、页面导航及按键设置保存，不能替代旧 3.5 寸 Pad 的工作固件。
+## 当前功能
 
-按键映射页列出 13 个遥控器实体按键。每项可配置单键／组合快捷键、遥控器麦克风语音动作或无动作；触屏上可选择 Ctrl、Option、Command、Shift 和主键。保存后写入本板 NVS 的 `siri_pad/map_v1`；重新启动会读取，数据不合法时使用默认映射。恢复默认需要连续点按两次。此设置数据尚未连接到 BLE 和 USB HID 发送流程。
+- 板载 ESP32-C6 经 SDIO 提供真实 BLE 控制器；P4 运行 NimBLE 中心设备。设置页显示初始化、扫描、连接、配对、HID 初始化、已连接和错误状态。
+- “搜索”扫描 20 秒，仅列出同时广播 HID 服务与 Siri Remote 厂商标识的设备，最多四台；点选设备后连接并执行加密配对。
+- 发现 HID 报告描述符，订阅 `0xfb` 按键与 `0xfa` 音频通知，并向 `0xf0` 写入 `0xaf` 启用报告。仅在订阅成功且链路加密后显示“已连接”。设置页显示按键掩码、报告计数和音频包计数。
+- 保存遥控器身份和蓝牙绑定到 P4 NVS；重启自动重连。设置页可以重连、断开和移除配对，移除需要在五秒内再次点按确认。扫描期间暂停自动重连，避免旧设备抢占搜索流程。
+- 按键映射页可编辑 13 个遥控器实体按键，保存到 `siri_pad/map_v1`，重启读取并校验；可恢复默认。
 
-原有工厂分区表通过读回前 64 KiB 解析，`partitions.csv` 保持相同名称、偏移和大小。测试只允许在备份完成并确认目标 MAC `80:f1:b2:d5:c8:7f` 后，把**应用镜像**写入 `factory` 分区 `0x200000`；不得擦除整片、覆盖 bootloader／分区表／NVS／模型／存储分区。旧 S3 Pad 序列号 `1020BA4658B4-PAD1` 是另一台设备，不能用于本固件。
+**USB 键盘、USB 麦克风输出、板载麦克风和遥控器音频解码仍未移植。** 收到的按键与音频包目前用于链路验证，不会向电脑输入文字或输出音频，也不保存录音。按键映射暂未接入 USB HID 发送。
 
-构建：在 ESP-IDF 5.5.5 环境下，运行 `idf.py -B build/rev3_x_555 -D SDKCONFIG=build/rev3_x_555/sdkconfig -D 'SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.rev3_x' build`。依赖版本见 `main/idf_component.yml` 和 `dependencies.lock`。当前开发环境已编译通过，固件 `build/rev3_x_555/siri_pad_p4.bin` 约 855 KiB，位于 8 MiB 应用分区内。镜像标明 ESP32-P4 最低 revision v3.0。
+## 配对与诊断
 
-字形子集由 LVGL 9 附带的 Source Han Sans SC 字体生成，字体许可在 `licenses/SourceHanSansSC-OFL.txt`。重新生成需先让组件管理器取得 LVGL 9.5，并安装 `lv_font_conv` 1.5.3，运行 `python tools/generate_font.py /path/to/lv_font_conv`。
+在设置页点“搜索”，按住 Siri Remote 的返回键与音量加键约五秒，列表出现设备后点选。已绑定设备平时按一次中央确认键唤醒即可，无需重新配对。
+
+UART 115200 波特率提供 `status`、`scan`、`connect 0`（列表索引）、`reconnect`、`disconnect`。`status` 返回真实阶段、配对、报告计数。串口适配器开关端口可能触发板子复位，连续诊断应保持同一串口连接。
+
+## 构建
+
+使用 **ESP-IDF v5.5.5** 并先执行其 `export.sh`，确保 `ESP_IDF_VERSION=5.5`；Wi-Fi Remote 的 Kconfig 依赖该环境变量选择 C6 目标配置。
+
+```sh
+idf.py -B build/p4_ble \
+  -D SDKCONFIG=build/p4_ble/sdkconfig \
+  -D 'SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.rev3_x;sdkconfig.defaults.ble' build
+```
+
+依赖由 `dependencies.lock` 固定，本次使用 ESP-Hosted 1.4.7、Wi-Fi Remote 0.14.5。刷入前核对生成的配置为 P4 最低 revision 3.0、PSRAM 250 MHz、SDIO 4 位／20 MHz、C6 目标及 Hosted NimBLE VHCI；不能仅凭 defaults 文件认定配置已生效。
+
+原理图核对后的 P4→C6 接线：CLK GPIO18、CMD GPIO19、D0 GPIO14、D1 GPIO15、D2 GPIO16、D3 GPIO17、C6 EN GPIO54。没有修改或重新刷写 C6 固件；实板原有固件返回能力 `0x0d`，包括 HCI over SDIO 和 BLE。
+
+## 刷写与备份
+
+`partitions.csv` 与读回的原厂分区表一致。仅把 `build/p4_ble/siri_pad_p4.bin` 写入 `factory` 应用分区 **0x200000**；不要执行会同时刷 bootloader／分区表的默认 `idf.py flash`，不要擦除整片。原厂 8 MiB 应用、前 64 KiB 和 NVS 区域备份位于本地 `../backups/`，不上传 Git。
+
+本次目标 P4 MAC 为 `80:f1:b2:d5:c8:7f`，USB UART 序列号为 `5B90124240`。旧 S3 Pad `1020BA4658B4-PAD1` 是另一台设备，不能刷本固件。
+
+## 验证边界
+
+已在实板验证：应用刷写哈希、1280×720 显示和触控驱动初始化、C6 SDIO 能力响应、蓝牙协议栈就绪、遥控器加密绑定、MTU 185、HID 通知订阅和保存身份后的自动重连；主动断开、扫描启动及 20 秒超时也已验证。主动断开后遥控器可能需要按键唤醒才能重连。实物按键与语音连续收包、完整触屏操作仍需用户配合验收；尚不能把订阅成功当作音频输出或全部按键验收。
+
+字形子集来自 LVGL 附带的 Source Han Sans SC，许可在 `licenses/SourceHanSansSC-OFL.txt`。重新生成需组件管理器下载 LVGL 9.5 和 `lv_font_conv` 1.5.3，运行 `python tools/generate_font.py /path/to/lv_font_conv`。
