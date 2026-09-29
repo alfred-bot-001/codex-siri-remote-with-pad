@@ -11,6 +11,7 @@
 #include "bsp/esp-bsp.h"
 #include "bsp/display.h"
 #include "remote.h"
+#include "usb_keyboard.h"
 
 LV_FONT_DECLARE(font_cn28);
 static const char *TAG = "siri-pad-p4";
@@ -34,7 +35,7 @@ static const uint8_t keys[]={0x2c,0x28,0x50,0x4f,0x52,0x51,0x2a,0x29,0x2b,
 static const char *key_names[]={"空格","回车","左箭头","右箭头","上箭头","下箭头","退格","Esc","Tab",
     "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 #define KEY_COUNT (sizeof(keys)/sizeof(keys[0]))
-static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*mapping_list,*notice,*home_left_note,*home_right_note,*home_tv_note;
+static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*mapping_list,*notice,*home_left_note,*home_right_note,*home_tv_note,*usb_state;
 static lv_obj_t *tab_bt,*tab_map,*reset_button,*editor,*editor_type,*editor_key,*editor_option,*editor_mods[4],*editor_preview,*keyboard_group;
 static int editing_index=-1;
 static map_entry_t draft;
@@ -42,6 +43,30 @@ static void inform(const char *message);
 static bool reset_armed;
 static lv_obj_t *bt_header,*bt_state,*bt_peer,*bt_detail,*bt_scan_note,*bt_candidates[REMOTE_CANDIDATES],*bt_forget;
 static uint32_t forget_until;
+static uint16_t previous_buttons;
+static uint8_t hid_modifiers(uint8_t m){return ((m&MOD_CTRL)?0x01:0)|((m&MOD_OPT)?0x04:0)|((m&MOD_CMD)?0x08:0)|((m&MOD_SHIFT)?0x02:0);}
+static void send_entry(const map_entry_t *entry){
+    if(entry->type==MAP_KEY)usb_keyboard_send(hid_modifiers(entry->mods),entry->key);
+}
+// Called from the BLE host task. Keep it nonblocking; USB reports are queued for the USB task.
+void pad_remote_buttons(uint16_t mask){
+    static const uint16_t bits[REM_COUNT]={0x1000,0x0400,0x0008,0x0100,0x0004,0x0002,0x0001,0x0020};
+    uint16_t newly_pressed=mask&~previous_buttons;
+    previous_buttons=mask;
+    if(!usb_keyboard_connected())return;
+    for(int i=0;i<8;i++){
+        if(!(newly_pressed&bits[i]))continue;
+        if(i==REM_LEFT||i==REM_RIGHT||i==REM_TV)send_entry(&mapping.entry[i]);
+    }
+    uint8_t modifier=0,key=0;
+    for(int i=REM_SELECT;i<=REM_VOICE;i++){
+        if(!(mask&bits[i]))continue;
+        const map_entry_t *entry=&mapping.entry[i];
+        if(entry->type==MAP_VOICE)modifier|=entry->option?0x40:0x04;
+        else if(entry->type==MAP_KEY){modifier|=hid_modifiers(entry->mods);if(!key)key=entry->key;}
+    }
+    usb_keyboard_set(modifier,key);
+}
 static void bluetooth_action(lv_event_t *e){
     remote_command_t cmd=(remote_command_t)(intptr_t)lv_event_get_user_data(e);
     remote_status_t s;remote_get_status(&s);
@@ -60,6 +85,9 @@ static void bluetooth_connect(lv_event_t *e){
 }
 static void bluetooth_refresh(lv_timer_t *timer){
     (void)timer;remote_status_t s;remote_get_status(&s);
+    static bool last_usb;
+    bool connected=usb_keyboard_connected();
+    if(connected!=last_usb){lv_label_set_text(usb_state,connected?"电脑已连接":"电脑未接入");last_usb=connected;}
     const char *states[]={"正在初始化","未连接","正在搜索","正在连接","正在配对","正在读取按键","已连接","连接失败"};
     lv_label_set_text(bt_state,states[s.phase]);
     lv_label_set_text(lv_obj_get_child(bt_header,0),s.phase==REMOTE_READY?"蓝牙已连接":states[s.phase]);
@@ -76,7 +104,7 @@ static void bluetooth_refresh(lv_timer_t *timer){
     static remote_phase_t last_phase=REMOTE_STARTING;
     if(s.error&&s.error!=last_error){snprintf(detail,sizeof(detail),"蓝牙状态码：%d；可重新连接或搜索配对",s.error);inform(detail);}
     else if(!s.error&&s.phase!=last_phase){
-        if(s.phase==REMOTE_READY)inform("遥控器已连接；USB 键盘与音频输出待接入");
+        if(s.phase==REMOTE_READY)inform(connected?"遥控器与电脑键盘已连接；麦克风待接入":"遥控器已连接；请检查电脑 USB OTG 连接");
         else if(s.phase==REMOTE_CONNECTING)inform("正在连接遥控器");
         else if(s.phase==REMOTE_SCANNING)inform("正在搜索，请让遥控器进入配对模式");
         else if(s.phase==REMOTE_IDLE)inform("遥控器未连接，可搜索或重新连接");
@@ -162,7 +190,16 @@ static void select_tab(bool bluetooth){
 }
 static void show_bt(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(true);}
 static void show_mapping(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(false);}
-static void usb_unavailable(lv_event_t *e){(void)e;inform("USB 键盘与麦克风尚未接入");}
+static void usb_unavailable(lv_event_t *e){(void)e;inform("USB 麦克风尚未接入");}
+static void touch_key(lv_event_t *e){
+    uint8_t key=(uint8_t)(uintptr_t)lv_event_get_user_data(e);
+    if(!usb_keyboard_send(0,key))inform("电脑键盘未连接，请使用 USB OTG 口");
+}
+static void touch_mapping(lv_event_t *e){
+    int index=(int)(intptr_t)lv_event_get_user_data(e);
+    if(!usb_keyboard_connected()){inform("电脑键盘未连接，请使用 USB OTG 口");return;}
+    send_entry(&mapping.entry[index]);
+}
 static void editor_refresh(void);
 static void editor_close(lv_event_t *e){(void)e;if(editor){lv_obj_delete_async(editor);editor=NULL;}editing_index=-1;}
 static void editor_type_cycle(lv_event_t *e){(void)e;draft.type=(draft.type+1)%3;if(draft.type==MAP_KEY&&!draft.key)draft.key=0x2c;editor_refresh();}
@@ -233,27 +270,27 @@ static void reset_mapping(lv_event_t *e){(void)e;if(!reset_armed){reset_armed=tr
 static void create_ui(void){
     root=lv_screen_active();lv_obj_set_style_bg_color(root,lv_color_hex(BG),0);lv_obj_remove_flag(root,LV_OBJ_FLAG_SCROLLABLE);
     box(root,0,0,1280,86,WHITE,0);label(root,"语音输入",37,27,250,DARK);
-    box(root,706,16,185,54,0xf1f3f6,14);label(root,"电脑未接入",727,29,165,MUTED);
+    box(root,706,16,185,54,0xf1f3f6,14);usb_state=label(root,"电脑未接入",727,29,165,MUTED);
     bt_header=button(root,"蓝牙初始化",904,16,205,54,0xf1f3f6,MUTED,show_bt,NULL);
     button(root,"设置",1122,16,124,54,PALE,BLUE,show_bt,NULL);
     home=box(root,0,86,1280,572,BG,0);settings=box(root,0,86,1280,572,BG,0);
     // Home: application shortcuts, microphone, and large keyboard keys.
     lv_obj_t *apps=box(home,33,20,278,532,WHITE,23);label(apps,"应用",24,22,220,MUTED);
-    button(apps,"ChatGPT",20,80,238,103,0xecf7f3,DARK,usb_unavailable,NULL);
+    button(apps,"ChatGPT",20,80,238,103,0xecf7f3,DARK,touch_mapping,(void*)(intptr_t)REM_LEFT);
     home_left_note=label(apps,"",22,193,235,MUTED);
-    button(apps,"Claude",20,247,238,103,0xf8efe9,DARK,usb_unavailable,NULL);
+    button(apps,"Claude",20,247,238,103,0xf8efe9,DARK,touch_mapping,(void*)(intptr_t)REM_RIGHT);
     home_right_note=label(apps,"",22,358,235,MUTED);
-    button(apps,"输入法切换",20,431,238,75,PALE,BLUE,usb_unavailable,NULL);
+    button(apps,"输入法切换",20,431,238,75,PALE,BLUE,touch_mapping,(void*)(intptr_t)REM_TV);
     home_tv_note=label(apps,"",22,506,235,MUTED);
     lv_obj_t *mic=box(home,330,20,522,532,WHITE,23);label(mic,"麦克风",26,22,250,MUTED);
     button(mic,"麦克风",150,126,220,220,0xe6edff,BLUE,usb_unavailable,NULL);
     label(mic,"等待音频功能",147,369,300,DARK);label(mic,"遥控器与板载麦克风待移植",64,417,430,MUTED);
     lv_obj_t *control=box(home,870,20,377,532,WHITE,23);label(control,"键盘",23,22,300,MUTED);
-    button(control,"<",20,78,163,110,0xf1f4f8,DARK,usb_unavailable,NULL);
-    button(control,">",194,78,163,110,0xf1f4f8,DARK,usb_unavailable,NULL);
-    button(control,"回车",20,204,337,130,BLUE,WHITE,usb_unavailable,NULL);
-    button(control,"空格",20,350,337,78,0xf1f4f8,DARK,usb_unavailable,NULL);
-    label(control,"此版仅供界面与设置试用",20,454,350,MUTED);
+    button(control,"<",20,78,163,110,0xf1f4f8,DARK,touch_key,(void*)(uintptr_t)0x50);
+    button(control,">",194,78,163,110,0xf1f4f8,DARK,touch_key,(void*)(uintptr_t)0x4f);
+    button(control,"回车",20,204,337,130,BLUE,WHITE,touch_key,(void*)(uintptr_t)0x28);
+    button(control,"空格",20,350,337,78,0xf1f4f8,DARK,touch_key,(void*)(uintptr_t)0x2c);
+    label(control,"USB 键盘按键",20,454,350,MUTED);
     // Settings: independent Bluetooth and mapping pages.
     lv_obj_t *nav=box(settings,33,20,246,532,WHITE,23);label(nav,"设置",25,27,190,DARK);
     tab_bt=button(nav,"蓝牙连接",20,105,206,70,PALE,BLUE,show_bt,NULL);
@@ -273,17 +310,18 @@ static void create_ui(void){
     button(discover,"搜索",316,10,114,50,PALE,BLUE,bluetooth_action,(void*)(intptr_t)REMOTE_SCAN);
     bt_scan_note=label(discover,"",22,72,410,MUTED);
     for(int i=0;i<REMOTE_CANDIDATES;i++)bt_candidates[i]=button(discover,"",15,125+i*50,420,45,PALE,BLUE,bluetooth_connect,(void*)(intptr_t)i);
-    label(bt_page,"连接后可验证遥控器按键；USB 与音频输出待接入。",30,478,890,MUTED);
+    label(bt_page,"遥控器经蓝牙连接；电脑键盘经 USB OTG 连接。",30,478,890,MUTED);
     map_page=box(content,0,0,949,532,WHITE,23);label(map_page,"按键映射",30,25,500,DARK);
     label(map_page,"点按编辑，配置快捷键；保存到设备 NVS",30,71,850,MUTED);
     reset_button=button(map_page,"恢复默认",700,22,216,62,PALE,BLUE,reset_mapping,NULL);
     mapping_list=box(map_page,28,125,892,380,WHITE,15);lv_obj_add_flag(mapping_list,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(mapping_list,LV_DIR_VER);mapping_render();
     lv_obj_add_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(true);update_home_notes();
-    box(root,0,658,1280,62,WHITE,0);notice=label(root,"蓝牙连接测试版：USB 键盘与音频输出待接入",38,675,1150,MUTED);
+    box(root,0,658,1280,62,WHITE,0);notice=label(root,"电脑请连接 USB OTG；USB 麦克风待接入",38,675,1150,MUTED);
 }
 void app_main(void){
     mapping_load();
+    usb_keyboard_start();
     bsp_display_cfg_t cfg={
         .lv_adapter_cfg=ESP_LV_ADAPTER_DEFAULT_CONFIG(),
         .rotation=ESP_LV_ADAPTER_ROTATE_90,

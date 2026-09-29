@@ -2,6 +2,7 @@ dependencies:
   idf: ">=5.5.5,<5.6"
   espressif/esp_hosted: "1.4.*"
   espressif/esp_wifi_remote: "0.14.*"
+  espressif/tinyusb: "0.19.0~3"
   lvgl/lvgl: "9.5.0"
   waveshare/esp32_p4_wifi6_touch_lcd_5: "^1.0.4"
   waveshare/esp_lcd_hx8394: "^2.1.0"

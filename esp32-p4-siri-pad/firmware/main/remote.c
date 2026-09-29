@@ -13,6 +13,7 @@
 #include "services/gap/ble_svc_gap.h"
 
 static const char *TAG="pad-remote";
+void pad_remote_buttons(uint16_t mask);
 static portMUX_TYPE lock=portMUX_INITIALIZER_UNLOCKED;
 static remote_status_t status;
 static ble_addr_t candidates[REMOTE_CANDIDATES], saved_peer;
@@ -168,6 +169,7 @@ static int gap_event(struct ble_gap_event *event,void *arg){
     case BLE_GAP_EVENT_DISCONNECT:
         connection=BLE_HS_CONN_HANDLE_NONE;button_index=audio_index=enable_index=-1;
         portENTER_CRITICAL(&lock);status.buttons=0;portEXIT_CRITICAL(&lock);
+        pad_remote_buttons(0);
         if(user_stop)phase(REMOTE_IDLE,0);
         else if(!link_error)phase(REMOTE_IDLE,event->disconnect.reason);
         retry_later();break;
@@ -180,6 +182,7 @@ static int gap_event(struct ble_gap_event *event,void *arg){
         if(button_index>=0&&attr==reports[button_index].value&&length>=2){
             uint8_t data[2];os_mbuf_copydata(event->notify_rx.om,0,2,data);uint16_t mask=data[0]|(data[1]<<8);
             portENTER_CRITICAL(&lock);status.buttons=mask;status.button_reports++;status.revision++;portEXIT_CRITICAL(&lock);
+            pad_remote_buttons(mask);
             ESP_LOGI(TAG,"buttons=0x%04x",mask);
         }else if(audio_index>=0&&attr==reports[audio_index].value){
             portENTER_CRITICAL(&lock);status.audio_packets++;status.revision++;portEXIT_CRITICAL(&lock);
