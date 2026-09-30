@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
@@ -28,6 +29,13 @@ typedef struct { uint8_t type,key,mods,option; } map_entry_t;
 typedef struct { uint32_t magic; map_entry_t entry[REM_COUNT]; } mapping_t;
 static mapping_t mapping;
 static bool nvs_ready;
+static uint16_t screen_timeout_minutes=30;
+static const uint16_t screen_timeout_choices[]={1,5,15,30,60,0};
+static const char *screen_timeout_names[]={"1 分钟","5 分钟","15 分钟","30 分钟","60 分钟","永不"};
+static atomic_uint remote_activity_seq=ATOMIC_VAR_INIT(0);
+static unsigned remote_activity_seen;
+static TickType_t last_activity_tick;
+static bool screen_sleeping;
 static const char *button_names[REM_COUNT] = {
     "圆环左键", "圆环右键", "中央确认", "播放暂停", "减号", "加号", "小电视", "语音键",
     "圆环上键", "圆环下键", "返回键", "静音键", "电源键"
@@ -38,12 +46,13 @@ static const uint8_t keys[]={0x2c,0x28,0x50,0x4f,0x52,0x51,0x2a,0x29,0x2b,
 static const char *key_names[]={"空格","回车","左箭头","右箭头","上箭头","下箭头","退格","Esc","Tab",
     "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 #define KEY_COUNT (sizeof(keys)/sizeof(keys[0]))
-static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*mapping_list,*notice,*home_left_note,*home_right_note,*usb_state,*home_mic_state,*home_mic_button;
+static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*screen_page,*mapping_list,*notice,*home_left_note,*home_right_note,*usb_state,*home_mic_state,*home_mic_button,*sleep_overlay;
 static lv_timer_t *notice_timer;
-static lv_obj_t *tab_bt,*tab_map,*reset_button,*editor,*editor_type,*editor_key,*editor_option,*editor_mods[4],*editor_preview,*keyboard_group;
+static lv_obj_t *tab_bt,*tab_map,*tab_screen,*screen_timeout_buttons[6],*screen_timeout_value,*reset_button,*editor,*editor_type,*editor_key,*editor_option,*editor_mods[4],*editor_preview,*keyboard_group;
 static int editing_index=-1;
 static map_entry_t draft;
 static void inform(const char *message);
+static void screen_register_activity(void);
 static bool reset_armed;
 static lv_obj_t *bt_header,*bt_state,*bt_peer,*bt_detail,*bt_scan_note,*bt_candidates[REMOTE_CANDIDATES],*bt_forget;
 static uint32_t forget_until;
@@ -56,6 +65,7 @@ static void send_entry(const map_entry_t *entry){
 void pad_remote_buttons(uint16_t mask){
     static const uint16_t bits[REM_COUNT]={0x1000,0x0400,0x0008,0x0100,0x0004,0x0002,0x0001,0x0020};
     uint16_t newly_pressed=mask&~previous_buttons;
+    if(mask!=previous_buttons)atomic_fetch_add_explicit(&remote_activity_seq,1,memory_order_relaxed);
     previous_buttons=mask;
     audio_stream_remote_button(usb_keyboard_connected()&&mapping.entry[REM_VOICE].type==MAP_VOICE&&(mask&bits[REM_VOICE]));
     if(!usb_keyboard_connected())return;
@@ -94,7 +104,7 @@ static void bluetooth_refresh(lv_timer_t *timer){
     (void)timer;remote_status_t s;remote_get_status(&s);
     static bool last_usb;
     bool connected=usb_keyboard_connected();
-    if(connected!=last_usb){lv_label_set_text(usb_state,connected?"电脑已连接":"电脑未接入");last_usb=connected;}
+    if(connected!=last_usb){lv_label_set_text(usb_state,connected?"电脑已连接":"电脑未接入");last_usb=connected;screen_register_activity();}
     pad_audio_status_t audio;audio_stream_status(&audio);
     lv_label_set_text(home_mic_state,audio.source==PAD_MIC_OFF?"准备就绪":audio.source==PAD_MIC_BOARD?"板载麦克风输入中":"遥控器语音输入中");
     lv_obj_set_style_bg_color(home_mic_button,lv_color_hex(audio.source!=PAD_MIC_OFF?0x30322d:BLUE),0);
@@ -113,6 +123,7 @@ static void bluetooth_refresh(lv_timer_t *timer){
     }
     static int last_error;
     static remote_phase_t last_phase=REMOTE_STARTING;
+    if(s.phase!=last_phase)screen_register_activity();
     if(s.error&&s.error!=last_error){snprintf(detail,sizeof(detail),"蓝牙状态码：%d；可重新连接或搜索配对",s.error);inform(detail);}
     else if(!s.error&&s.phase!=last_phase){
         if(s.phase==REMOTE_READY)inform(connected?"遥控器与电脑键盘已连接；麦克风待接入":"遥控器已连接；请检查电脑 USB OTG 连接");
@@ -142,6 +153,11 @@ static void mapping_defaults(void) {
     mapping.entry[REM_TV]=(map_entry_t){MAP_KEY,0x2c,MOD_CMD,0};
     mapping.entry[REM_VOICE]=(map_entry_t){MAP_VOICE,0,0,1};
 }
+static bool valid_screen_timeout(uint16_t minutes) {
+    for(size_t i=0;i<sizeof(screen_timeout_choices)/sizeof(screen_timeout_choices[0]);i++)
+        if(minutes==screen_timeout_choices[i])return true;
+    return false;
+}
 static void mapping_load(void) {
     mapping_defaults();
     esp_err_t error=nvs_flash_init();
@@ -153,12 +169,23 @@ static void mapping_load(void) {
         bool valid=true;for(int i=0;i<REM_COUNT;i++)if(!valid_entry(&saved.entry[i]))valid=false;
         if(valid)mapping=saved;
     }
+    uint16_t saved_timeout;
+    if(nvs_get_u16(h,"screen_min",&saved_timeout)==ESP_OK&&valid_screen_timeout(saved_timeout))
+        screen_timeout_minutes=saved_timeout;
     nvs_close(h);
 }
 static bool mapping_save(void) {
     if(!nvs_ready)return false;
     nvs_handle_t h;if(nvs_open("siri_pad",NVS_READWRITE,&h)!=ESP_OK)return false;
     esp_err_t e=nvs_set_blob(h,"map_v1",&mapping,sizeof(mapping));
+    if(e==ESP_OK)e=nvs_commit(h);
+    nvs_close(h);
+    return e==ESP_OK;
+}
+static bool screen_timeout_save(void) {
+    if(!nvs_ready)return false;
+    nvs_handle_t h;if(nvs_open("siri_pad",NVS_READWRITE,&h)!=ESP_OK)return false;
+    esp_err_t e=nvs_set_u16(h,"screen_min",screen_timeout_minutes);
     if(e==ESP_OK)e=nvs_commit(h);
     nvs_close(h);
     return e==ESP_OK;
@@ -215,12 +242,44 @@ static void app_button_content(lv_obj_t *app,const lv_image_dsc_t *icon) {
     lv_obj_set_style_image_recolor(image,lv_color_hex(DARK),0);
     lv_obj_set_style_image_recolor_opa(image,LV_OPA_COVER,0);
 }
+static void screen_wake(void) {
+    if(!screen_sleeping)return;
+    esp_err_t err=bsp_display_backlight_on();
+    if(err!=ESP_OK){ESP_LOGE(TAG,"Backlight wake failed: %s",esp_err_to_name(err));return;}
+    screen_sleeping=false;
+    lv_obj_add_flag(sleep_overlay,LV_OBJ_FLAG_HIDDEN);
+    ESP_LOGI(TAG,"Screen awake");
+}
+static void screen_register_activity(void) {
+    last_activity_tick=xTaskGetTickCount();
+    screen_wake();
+}
+static void screen_wake_touch(lv_event_t *e) {
+    (void)e;
+    screen_register_activity();
+}
+static void screen_timeout_tick(lv_timer_t *timer) {
+    (void)timer;
+    unsigned seq=atomic_load_explicit(&remote_activity_seq,memory_order_relaxed);
+    if(seq!=remote_activity_seen){remote_activity_seen=seq;screen_register_activity();}
+    if(screen_sleeping||screen_timeout_minutes==0)return;
+    pad_audio_status_t audio;audio_stream_status(&audio);
+    remote_status_t remote;remote_get_status(&remote);
+    if(audio.source!=PAD_MIC_OFF||remote.buttons){screen_register_activity();return;}
+    TickType_t timeout=pdMS_TO_TICKS((uint32_t)screen_timeout_minutes*60000U);
+    if((TickType_t)(xTaskGetTickCount()-last_activity_tick)<timeout)return;
+    esp_err_t err=bsp_display_backlight_off();
+    if(err!=ESP_OK){ESP_LOGE(TAG,"Backlight sleep failed: %s",esp_err_to_name(err));screen_register_activity();return;}
+    screen_sleeping=true;
+    lv_obj_remove_flag(sleep_overlay,LV_OBJ_FLAG_HIDDEN);
+    ESP_LOGI(TAG,"Screen asleep after %u minutes",(unsigned)screen_timeout_minutes);
+}
 static void touch_diagnostic(lv_timer_t *timer){
     (void)timer;static bool pressed;
     for(lv_indev_t *indev=lv_indev_get_next(NULL);indev;indev=lv_indev_get_next(indev)){
         if(lv_indev_get_type(indev)!=LV_INDEV_TYPE_POINTER)continue;
         bool down=lv_indev_get_state(indev)==LV_INDEV_STATE_PRESSED;
-        if(down&&!pressed){lv_point_t point;lv_indev_get_point(indev,&point);ESP_LOGI(TAG,"touch raw x=%ld y=%ld",(long)point.x,(long)point.y);}
+        if(down&&!pressed){lv_point_t point;lv_indev_get_point(indev,&point);ESP_LOGI(TAG,"touch raw x=%ld y=%ld",(long)point.x,(long)point.y);screen_register_activity();}
         pressed=down;break;
     }
 }
@@ -235,14 +294,39 @@ static void inform(const char *message){
 static void update_home_notes(void){char s[96];format_action(&mapping.entry[REM_LEFT],s,sizeof(s));lv_label_set_text(home_left_note,s);
     format_action(&mapping.entry[REM_RIGHT],s,sizeof(s));lv_label_set_text(home_right_note,s);}
 static void show_home(lv_event_t *e){(void)e;lv_obj_remove_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(settings,LV_OBJ_FLAG_HIDDEN);}
-static void select_tab(bool bluetooth){
-    if(bluetooth){lv_obj_remove_flag(bt_page,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(map_page,LV_OBJ_FLAG_HIDDEN);}
-    else{lv_obj_add_flag(bt_page,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(map_page,LV_OBJ_FLAG_HIDDEN);}
-    lv_obj_set_style_bg_color(tab_bt,lv_color_hex(bluetooth?PALE:WHITE),0);
-    lv_obj_set_style_bg_color(tab_map,lv_color_hex(bluetooth?WHITE:PALE),0);
+enum {PAGE_BT,PAGE_MAP,PAGE_SCREEN};
+static void select_tab(int page){
+    lv_obj_t *pages[]={bt_page,map_page,screen_page};
+    lv_obj_t *tabs[]={tab_bt,tab_map,tab_screen};
+    for(int i=0;i<3;i++){
+        if(i==page)lv_obj_remove_flag(pages[i],LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(pages[i],LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_color(tabs[i],lv_color_hex(i==page?PALE:WHITE),0);
+    }
 }
-static void show_bt(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(true);}
-static void show_mapping(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(false);}
+static void show_bt(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(PAGE_BT);}
+static void show_mapping(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(PAGE_MAP);}
+static void show_screen_settings(lv_event_t *e){(void)e;lv_obj_add_flag(home,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(PAGE_SCREEN);}
+static void screen_timeout_refresh(void) {
+    for(int i=0;i<6;i++){
+        bool selected=screen_timeout_minutes==screen_timeout_choices[i];
+        lv_obj_set_style_bg_color(screen_timeout_buttons[i],lv_color_hex(selected?0xf4e9e3:WHITE),0);
+        lv_obj_set_style_border_width(screen_timeout_buttons[i],selected?2:1,0);
+        lv_obj_set_style_border_color(screen_timeout_buttons[i],lv_color_hex(selected?BLUE:0xc8c9c1),0);
+    }
+    for(int i=0;i<6;i++)if(screen_timeout_minutes==screen_timeout_choices[i]){
+        lv_label_set_text(screen_timeout_value,screen_timeout_names[i]);break;
+    }
+}
+static void screen_timeout_choose(lv_event_t *e) {
+    uint16_t minutes=(uint16_t)(uintptr_t)lv_event_get_user_data(e);
+    if(!valid_screen_timeout(minutes))return;
+    screen_timeout_minutes=minutes;
+    screen_register_activity();
+    screen_timeout_refresh();
+    bool saved=screen_timeout_save();
+    inform(saved?(minutes?"息屏时间已保存":"已关闭自动息屏"):"息屏时间已更改，但保存失败");
+}
 static void touch_microphone(lv_event_t *e){
     (void)e;
     if(!usb_keyboard_connected()){inform("电脑未连接，请检查 USB OTG 口");return;}
@@ -396,7 +480,8 @@ static void create_ui(void){
     lv_obj_t *nav=box(settings,33,20,246,532,WHITE,23);label(nav,"设置",25,27,190,DARK);
     tab_bt=button(nav,"蓝牙连接",20,105,206,70,PALE,BLUE,show_bt,NULL);
     tab_map=button(nav,"按键映射",20,189,206,70,WHITE,DARK,show_mapping,NULL);
-    button(nav,"返回主页",20,325,206,65,0xf1f3f6,DARK,show_home,NULL);
+    tab_screen=button(nav,"屏幕与息屏",20,273,206,70,WHITE,DARK,show_screen_settings,NULL);
+    button(nav,"返回主页",20,394,206,65,0xf1f3f6,DARK,show_home,NULL);
     lv_obj_t *content=box(settings,298,20,949,532,WHITE,23);
     bt_page=box(content,0,0,949,532,WHITE,23);label(bt_page,"蓝牙连接",30,25,650,DARK);
     label(bt_page,"管理 Apple TV 遥控器配对与重连",30,71,800,MUTED);
@@ -417,7 +502,19 @@ static void create_ui(void){
     reset_button=button(map_page,"恢复默认",700,22,216,62,PALE,BLUE,reset_mapping,NULL);
     mapping_list=box(map_page,28,125,892,380,WHITE,15);lv_obj_add_flag(mapping_list,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(mapping_list,LV_DIR_VER);mapping_render();
-    lv_obj_add_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(true);update_home_notes();
+    screen_page=box(content,0,0,949,532,WHITE,23);
+    label(screen_page,"屏幕与息屏",30,25,650,DARK);
+    label(screen_page,"没有触摸、遥控器按键或语音输入时，自动关闭背光。",30,72,890,MUTED);
+    lv_obj_t *current=box(screen_page,30,125,888,78,0xe8e8e2,8);
+    label(current,"当前设置",20,23,220,MUTED);
+    screen_timeout_value=label(current,"30 分钟",275,23,500,DARK);
+    for(int i=0;i<6;i++){
+        int x=30+(i%3)*300,y=225+(i/3)*91;
+        screen_timeout_buttons[i]=button(screen_page,screen_timeout_names[i],x,y,280,72,WHITE,DARK,screen_timeout_choose,(void*)(uintptr_t)screen_timeout_choices[i]);
+    }
+    label(screen_page,"首次触摸只唤醒屏幕；键盘、麦克风和蓝牙保持连接。",30,443,890,MUTED);
+    screen_timeout_refresh();
+    lv_obj_add_flag(settings,LV_OBJ_FLAG_HIDDEN);select_tab(PAGE_BT);update_home_notes();
     notice=box(root,140,651,1000,51,0x30322d,8);
     lv_obj_t *notice_text=label(notice,"",16,12,968,WHITE);
     lv_obj_set_style_text_font(notice_text,&font_cn18,0);
@@ -425,6 +522,11 @@ static void create_ui(void){
     lv_obj_add_flag(notice,LV_OBJ_FLAG_HIDDEN);
     notice_timer=lv_timer_create(hide_notice,3000,NULL);
     lv_timer_pause(notice_timer);
+    sleep_overlay=box(root,0,0,1280,720,BG,0);
+    lv_obj_set_style_bg_opa(sleep_overlay,LV_OPA_TRANSP,0);
+    lv_obj_add_flag(sleep_overlay,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(sleep_overlay,screen_wake_touch,LV_EVENT_PRESSED,NULL);
+    lv_obj_add_flag(sleep_overlay,LV_OBJ_FLAG_HIDDEN);
 }
 void app_main(void){
     mapping_load();
@@ -442,8 +544,10 @@ void app_main(void){
     ESP_LOGI(TAG,"Display resolution %d x %d; NVS %s",width,height,nvs_ready?"ready":"unavailable");
     if(width==1280&&height==720)create_ui();
     else{lv_obj_t *error=lv_label_create(lv_screen_active());lv_label_set_text(error,"Display rotation error");lv_obj_center(error);}
+    if(width==1280&&height==720){screen_register_activity();remote_activity_seen=atomic_load_explicit(&remote_activity_seq,memory_order_relaxed);}
     if(width==1280&&height==720)lv_timer_create(bluetooth_refresh,250,NULL);
     if(width==1280&&height==720)lv_timer_create(touch_diagnostic,30,NULL);
+    if(width==1280&&height==720)lv_timer_create(screen_timeout_tick,1000,NULL);
     bsp_display_unlock();
     audio_stream_start();
     remote_start();

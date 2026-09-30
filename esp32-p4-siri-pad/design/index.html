@@ -73,6 +73,11 @@
   .mapping-list,.mapping-row{border-color:#d4d5cd}.editor{background:#f8f7f3;border-radius:10px}.editor label{color:#484b44;font-weight:750}
   .editor select,.modifier,.editor-preview{background:#e8e8e2;color:#272824;border-color:#c8c9c1;border-radius:7px;font-weight:650}
   .modifier.active{background:#f4e9e3;color:#8b3b22}.scrim,.editor-scrim{background:#27282485}
+  .screen-current{display:flex;align-items:center;justify-content:space-between;background:#e8e8e2;border:1px solid #d2d3cb;border-radius:8px;padding:19px 22px;margin:22px 0;color:#5b5e56;font-size:18px;font-weight:700}
+  .screen-current strong{color:#272824;font-size:26px}
+  .screen-options{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .screen-option{height:72px;background:#f8f7f3;border:1px solid #c8c9c1;border-radius:8px;color:#272824;font-size:22px;font-weight:750;box-shadow:0 3px 0 #c8c9c1}
+  .screen-option.selected{background:#f4e9e3;border:2px solid #dc531f;box-shadow:0 3px 0 #c79986}
   /* The control layout follows the Braun reference: three app keys above three primary controls. */
   main.home-page{display:flex;flex-direction:column;gap:0;padding:29px 40px 22px}
   main.home-page.hidden{display:none}
@@ -128,10 +133,11 @@
     <div class="home-trim" aria-hidden="true"><i class="trim-rivet"></i><div class="trim-groove"><i class="trim-slots"></i><i class="trim-accent"></i><i class="trim-slots"></i></div><i class="trim-rivet"></i></div>
   </main>
   <section class="settings-page" id="settings-page" aria-label="设置页面">
-    <nav class="settings-nav"><div class="settings-nav-title">设置</div><button class="settings-tab active" id="tab-bluetooth">ᛒ　蓝牙连接</button><button class="settings-tab" id="tab-mapping">⌨　按键映射</button><button class="settings-back" id="settings-back">←　返回主页</button></nav>
+    <nav class="settings-nav"><div class="settings-nav-title">设置</div><button class="settings-tab active" id="tab-bluetooth">ᛒ　蓝牙连接</button><button class="settings-tab" id="tab-mapping">⌨　按键映射</button><button class="settings-tab" id="tab-screen">◐　屏幕与息屏</button><button class="settings-back" id="settings-back">←　返回主页</button></nav>
     <div class="settings-content">
       <section class="settings-section active" id="bluetooth-section" aria-label="蓝牙连接设置"><h2 class="section-heading">蓝牙连接</h2><p class="section-subtitle">管理 Apple TV 遥控器配对及重连。断开时会释放按键并停止遥控器语音。</p><div class="bluetooth-grid"><div class="setting-card"><div class="setting-label">当前遥控器</div><div class="device-title" id="device-title">Apple TV 遥控器</div><div class="device-detail" id="device-detail">已连接 · 可接收按键与遥控器麦克风</div><div class="setting-actions"><button class="action primary" id="connect">重新连接</button><button class="action" id="disconnect">断开</button><button class="action danger" id="forget">移除配对</button></div><div class="confirm" id="confirm" hidden>移除后需要重新配对遥控器。<div class="setting-actions"><button class="action danger" id="confirm-forget">确定移除</button><button class="action" id="cancel-forget">取消</button></div></div></div><div><div class="scan-head"><span>附近的遥控器</span><button id="scan">搜索设备</button></div><div id="candidates"></div><div class="drawer-note">将遥控器设为配对模式后搜索。选择发现的设备，再点“连接所选设备”。成功后下次开机自动重连。</div></div></div></section>
       <section class="settings-section" id="mapping-section" aria-label="快捷键映射设置"><h2 class="section-heading">按键映射</h2><div class="mapping-toolbar"><p class="section-subtitle">点“编辑”配置遥控器按键；修改会保存在这个浏览器中。</p><div class="mapping-actions"><button class="action" id="export-mapping">导出配置</button><button class="action" id="reset-mapping">恢复默认</button></div></div><div class="mapping-list" id="mapping-list"></div><div class="mapping-note">快捷键可选择 Control、Option、Command、Shift 与主键。语音键可设为左／右 Option 加遥控器麦克风。此页是交互原型，尚未写入新板固件。</div></section>
+      <section class="settings-section" id="screen-section" aria-label="屏幕与息屏设置"><h2 class="section-heading">屏幕与息屏</h2><p class="section-subtitle">没有触摸、遥控器按键或语音输入时，自动关闭背光。</p><div class="screen-current"><span>当前设置</span><strong id="screen-timeout-value">30 分钟</strong></div><div class="screen-options"><button class="screen-option" data-timeout="1">1 分钟</button><button class="screen-option" data-timeout="5">5 分钟</button><button class="screen-option" data-timeout="15">15 分钟</button><button class="screen-option" data-timeout="30">30 分钟</button><button class="screen-option" data-timeout="60">60 分钟</button><button class="screen-option" data-timeout="0">永不</button></div><p class="drawer-note">首次触摸只唤醒屏幕；键盘、麦克风和蓝牙保持连接。浏览器页面只预览设置，实际息屏由 Pad 固件执行。</p></section>
     </div>
   </section>
   <div class="toast" id="toast" role="status" hidden></div>
@@ -166,6 +172,8 @@ function validAction(action){
 }
 function loadMapping(){try{let raw=JSON.parse(localStorage.getItem('siri-pad-p4-mapping-v1'));if(raw&&typeof raw==='object'&&remoteButtons.every(([id])=>validAction(raw[id])))return raw}catch(e){}return clone(defaultMapping)}
 let mapping=loadMapping(),connected=true,known=true,scanning=false,found=false,selected=false,boardMic=false,remoteMic=false,editing=null,editDraft=null;
+const timeoutChoices=[1,5,15,30,60,0];
+let screenTimeout=(()=>{try{const raw=localStorage.getItem('siri-pad-p4-screen-timeout-v1');if(raw===null)return 30;const value=Number(raw);return timeoutChoices.includes(value)?value:30}catch(e){return 30}})();
 function saveMapping(){try{localStorage.setItem('siri-pad-p4-mapping-v1',JSON.stringify(mapping));return true}catch(e){toast('浏览器不能保存本地设置');return false}}
 function formatAction(a){if(a.type==='none')return '未设置';if(a.type==='voice')return (a.option==='leftOption'?'左':'右')+' Option + 遥控器麦克风';return a.mods.map(m=>modNames[m]).join('')+keyNames[a.key]}
 function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').hidden=true,2700)}
@@ -193,9 +201,13 @@ function renderMapping(){
   row.append(name,value,edit);list.append(row);
  }
 }
+function renderScreenTimeout(){
+ $('screen-timeout-value').textContent=screenTimeout?screenTimeout+' 分钟':'永不';
+ document.querySelectorAll('.screen-option').forEach(button=>button.classList.toggle('selected',Number(button.dataset.timeout)===screenTimeout));
+}
 function showSettings(tab){
  const open=tab!==null;$('home-page').classList.toggle('hidden',open);$('settings-page').classList.toggle('active',open);$('settings-launch').classList.toggle('active',open);
- for(const name of ['bluetooth','mapping']){$('tab-'+name).classList.toggle('active',tab===name);$(name+'-section').classList.toggle('active',tab===name)}
+ for(const name of ['bluetooth','mapping','screen']){$('tab-'+name).classList.toggle('active',tab===name);$(name+'-section').classList.toggle('active',tab===name)}
  if(open)renderMapping();
 }
 function renderEditor(){
@@ -211,7 +223,8 @@ function openEditor(id){editing=id;editDraft=clone(mapping[id]);$('editor-title'
 function closeEditor(){$('editor-scrim').hidden=true;editing=null;editDraft=null}
 for(const [code,label] of Object.entries(keyNames)){const option=document.createElement('option');option.value=code;option.textContent=label;$('main-key').append(option)}
 $('open-settings').onclick=() => showSettings('bluetooth');$('settings-launch').onclick=()=>showSettings('bluetooth');$('settings-back').onclick=()=>showSettings(null);
-$('tab-bluetooth').onclick=()=>showSettings('bluetooth');$('tab-mapping').onclick=()=>showSettings('mapping');
+$('tab-bluetooth').onclick=()=>showSettings('bluetooth');$('tab-mapping').onclick=()=>showSettings('mapping');$('tab-screen').onclick=()=>showSettings('screen');
+document.querySelectorAll('.screen-option').forEach(button=>button.onclick=()=>{screenTimeout=Number(button.dataset.timeout);localStorage.setItem('siri-pad-p4-screen-timeout-v1',String(screenTimeout));renderScreenTimeout();toast(screenTimeout?'已设置 '+screenTimeout+' 分钟后息屏（模拟）':'已关闭自动息屏（模拟）')});
 $('scan').onclick=()=>{scanning=true;found=false;selected=false;renderBluetooth();setTimeout(()=>{scanning=false;found=true;renderBluetooth();toast('发现 Apple TV 遥控器，请点选（模拟）')},1800)};
 $('connect').onclick=()=>{connected=true;known=true;selected=false;renderBluetooth();toast('遥控器已连接（模拟）')};
 $('disconnect').onclick=()=>{connected=false;remoteMic=false;renderBluetooth();renderMain();toast('遥控器已断开（模拟）')};
@@ -228,7 +241,7 @@ for(const [id,key] of [['gpt','ChatGPT'],['claude','Claude'],['chrome','Chrome']
 for(const [id,key] of [['enter','回车'],['space','空格']])$(id).onclick=()=>toast('发送 '+key+'（模拟）');
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeEditor();showSettings(null)}if(e.key==='v'&&connected){remoteMic=true;boardMic=false;renderMain()}});
 document.addEventListener('keyup',e=>{if(e.key==='v'){remoteMic=false;renderMain()}});
-renderBluetooth();renderMain();renderMapping();if(location.hash==='#bluetooth')showSettings('bluetooth');if(location.hash==='#mapping'||location.hash==='#editor')showSettings('mapping');if(location.hash==='#editor')openEditor('remoteLeft');
+renderBluetooth();renderMain();renderMapping();renderScreenTimeout();if(location.hash==='#bluetooth')showSettings('bluetooth');if(location.hash==='#mapping'||location.hash==='#editor')showSettings('mapping');if(location.hash==='#screen')showSettings('screen');if(location.hash==='#editor')openEditor('remoteLeft');
 </script>
 </body>
 </html>
