@@ -175,6 +175,11 @@ static lv_obj_t *box(lv_obj_t *parent,int x,int y,int w,int h,uint32_t color,int
     lv_obj_set_style_bg_color(o,lv_color_hex(color),0);lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);
     lv_obj_set_style_radius(o,radius,0);lv_obj_remove_flag(o,LV_OBJ_FLAG_SCROLLABLE);return o;
 }
+static lv_obj_t *ornament(lv_obj_t *parent,int x,int y,int w,int h,uint32_t color,int radius) {
+    lv_obj_t *o=box(parent,x,y,w,h,color,radius);
+    lv_obj_remove_flag(o,LV_OBJ_FLAG_CLICKABLE);
+    return o;
+}
 static lv_obj_t *label(lv_obj_t *parent,const char *value,int x,int y,int w,uint32_t color) {
     lv_obj_t *o=lv_label_create(parent);lv_label_set_text(o,value);lv_obj_set_pos(o,x,y);lv_obj_set_width(o,w);
     lv_obj_set_style_text_font(o,&font_cn28,0);lv_obj_set_style_text_color(o,lv_color_hex(color),0);
@@ -368,6 +373,25 @@ static void create_ui(void){
     box(home_mic_button,48,99,30,6,WHITE,3);
     raise_home_button(button(home,"回车",924,259,303,119,0x30322d,WHITE,touch_key,(void*)(uintptr_t)0x28),true);
     home_mic_state=label(home,"准备就绪",523,410,270,DARK);
+    // Recessed instrument strip: decorative only, never used as a task-status indicator.
+    ornament(home,40,519,1200,1,0xd0d1c9,0);
+    lv_obj_t *groove=ornament(home,74,545,1132,22,0xe3e4dc,5);
+    lv_obj_set_style_border_width(groove,1,0);
+    lv_obj_set_style_border_color(groove,lv_color_hex(0xcccdc4),0);
+    lv_obj_set_style_shadow_width(groove,3,0);
+    lv_obj_set_style_shadow_offset_y(groove,1,0);
+    lv_obj_set_style_shadow_opa(groove,LV_OPA_20,0);
+    for(int i=0;i<14;i++){
+        ornament(home,214+i*26,554,14,5,0xb4b6aa,0);
+        ornament(home,688+i*26,554,14,5,0xb4b6aa,0);
+    }
+    ornament(home,604,554,72,5,BLUE,2);
+    lv_obj_t *left_rivet=ornament(home,50,550,12,12,0xd8d9d1,6);
+    lv_obj_t *right_rivet=ornament(home,1218,550,12,12,0xd8d9d1,6);
+    lv_obj_set_style_border_width(left_rivet,1,0);
+    lv_obj_set_style_border_width(right_rivet,1,0);
+    lv_obj_set_style_border_color(left_rivet,lv_color_hex(0xc2c3ba),0);
+    lv_obj_set_style_border_color(right_rivet,lv_color_hex(0xc2c3ba),0);
     // Settings: independent Bluetooth and mapping pages.
     lv_obj_t *nav=box(settings,33,20,246,532,WHITE,23);label(nav,"设置",25,27,190,DARK);
     tab_bt=button(nav,"蓝牙连接",20,105,206,70,PALE,BLUE,show_bt,NULL);

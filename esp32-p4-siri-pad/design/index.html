@@ -94,6 +94,11 @@
   .home-voice .mic{width:124px;height:124px;flex:none}
   .home-voice .mic svg{width:54px;height:54px}
   .home-voice .mic-state{font-size:26px;margin:6px 0 0}
+  .home-trim{height:70px;margin-top:auto;border-top:1px solid #d0d1c9;display:flex;align-items:center;gap:17px;padding:0 5px;pointer-events:none}
+  .trim-rivet{width:12px;height:12px;flex:none;border-radius:50%;border:1px solid #c2c3ba;background:#d8d9d1;box-shadow:inset 0 2px 3px #8e918544,0 1px 0 #fff}
+  .trim-groove{height:22px;flex:1;border:1px solid #cccdc4;border-radius:5px;background:linear-gradient(#dedfd7,#e8e8e1);box-shadow:inset 0 2px 4px #777b6d2d,0 1px 0 #fff;display:flex;align-items:center;justify-content:center;gap:20px;padding:0 25px}
+  .trim-slots{height:5px;flex:1;max-width:360px;background:repeating-linear-gradient(90deg,#aeb1a5 0 14px,transparent 14px 26px);opacity:.72}
+  .trim-accent{height:5px;width:72px;flex:none;border-radius:2px;background:#dc531f;box-shadow:0 1px 0 #a63c17}
   .toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:6;max-width:80%;padding:11px 19px;border-radius:8px;background:#30322d;color:#fff;font-size:16px;font-weight:700;box-shadow:0 8px 24px #27282435;text-align:center}
   /* A small physical lift keeps the Braun controls tactile without looking glossy. */
   .home-apps .app-btn,.home-controls .key{
@@ -111,7 +116,7 @@
   .home-voice .mic:hover{transform:translateY(-4px);box-shadow:0 7px 0 #a83b14,0 18px 25px #a83b1447,inset 0 1px 0 #ffffff55}
   .home-voice .mic:active{transform:translateY(2px);box-shadow:0 1px 0 #a83b14,inset 0 2px 6px #7f2e13}
   @media(prefers-reduced-motion:reduce){.home-apps .app-btn,.home-controls .key,.home-voice .mic{transition:none}}
-  @media(max-width:900px){main.home-page{padding:19px 22px 18px}.home-apps{gap:11px}.home-apps .app-btn{height:122px;padding:16px;gap:12px}.home-apps .app-icon{width:38px;height:38px}.home-apps .app-copy{gap:7px}.home-apps .app-name{font-size:23px}.home-apps .app-note{font-size:12px}.home-controls{gap:17px;margin-top:25px}.home-controls .key,.home-controls .key.space{height:86px;font-size:19px}.home-controls .key.enter{font-size:19px}.key-symbol{font-size:34px}.home-voice .mic{width:85px;height:85px}.home-voice .mic svg{width:40px;height:40px}.home-voice .mic-state{font-size:20px}}
+  @media(max-width:900px){main.home-page{padding:19px 22px 18px}.home-apps{gap:11px}.home-apps .app-btn{height:122px;padding:16px;gap:12px}.home-apps .app-icon{width:38px;height:38px}.home-apps .app-copy{gap:7px}.home-apps .app-name{font-size:23px}.home-apps .app-note{font-size:12px}.home-controls{gap:17px;margin-top:25px}.home-controls .key,.home-controls .key.space{height:86px;font-size:19px}.home-controls .key.enter{font-size:19px}.key-symbol{font-size:34px}.home-voice .mic{width:85px;height:85px}.home-voice .mic svg{width:40px;height:40px}.home-voice .mic-state{font-size:20px}.home-trim{height:48px;gap:9px}.trim-groove{gap:10px;padding:0 12px}.trim-accent{width:38px}}
 </style>
 </head>
 <body>
@@ -120,6 +125,7 @@
   <main class="home-page" id="home-page">
     <section class="home-apps" aria-label="应用快捷键"><button class="app-btn" id="gpt"><img class="app-icon" src="icons/openai.svg" alt=""><span class="app-copy"><span class="app-name">ChatGPT</span><span class="app-note">⌃ ⌥ ⌘ G</span></span></button><button class="app-btn claude" id="claude"><img class="app-icon" src="icons/claude.svg" alt=""><span class="app-copy"><span class="app-name">Claude</span><span class="app-note">⌃ ⌥ ⌘ C</span></span></button><button class="app-btn" id="chrome"><img class="app-icon" src="icons/googlechrome.svg" alt=""><span class="app-copy"><span class="app-name">Chrome</span><span class="app-note">⌃ ⌥ ⌘ B</span></span></button></section>
     <section class="home-controls" aria-label="键盘和语音控制"><button class="key space" id="space"><span class="key-symbol" aria-hidden="true">⎵</span>空格</button><div class="home-voice"><button class="mic" id="mic" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="23" y="7" width="18" height="32" rx="9" fill="currentColor" stroke="none"/><path d="M15 31a17 17 0 0 0 34 0M32 49v8M23 57h18"/></svg></button><div class="mic-state" id="mic-state">准备就绪</div></div><button class="key enter" id="enter"><span class="key-symbol" aria-hidden="true">↵</span>回车</button></section>
+    <div class="home-trim" aria-hidden="true"><i class="trim-rivet"></i><div class="trim-groove"><i class="trim-slots"></i><i class="trim-accent"></i><i class="trim-slots"></i></div><i class="trim-rivet"></i></div>
   </main>
   <section class="settings-page" id="settings-page" aria-label="设置页面">
     <nav class="settings-nav"><div class="settings-nav-title">设置</div><button class="settings-tab active" id="tab-bluetooth">ᛒ　蓝牙连接</button><button class="settings-tab" id="tab-mapping">⌨　按键映射</button><button class="settings-back" id="settings-back">←　返回主页</button></nav>
