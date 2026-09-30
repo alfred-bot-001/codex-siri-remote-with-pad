@@ -46,7 +46,7 @@ static const uint8_t keys[]={0x2c,0x28,0x50,0x4f,0x52,0x51,0x2a,0x29,0x2b,
 static const char *key_names[]={"空格","回车","左箭头","右箭头","上箭头","下箭头","退格","Esc","Tab",
     "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 #define KEY_COUNT (sizeof(keys)/sizeof(keys[0]))
-static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*screen_page,*mapping_list,*notice,*home_left_note,*home_right_note,*usb_state,*home_mic_state,*home_mic_button,*sleep_overlay;
+static lv_obj_t *root,*home,*settings,*bt_page,*map_page,*screen_page,*mapping_list,*notice,*home_left_note,*home_right_note,*usb_state,*home_mic_state,*home_mic_chip,*home_mic_dot,*home_timeout_state,*home_mic_button,*sleep_overlay;
 static lv_timer_t *notice_timer;
 static lv_obj_t *tab_bt,*tab_map,*tab_screen,*screen_timeout_buttons[6],*screen_timeout_value,*reset_button,*editor,*editor_type,*editor_key,*editor_option,*editor_mods[4],*editor_preview,*keyboard_group;
 static int editing_index=-1;
@@ -106,7 +106,11 @@ static void bluetooth_refresh(lv_timer_t *timer){
     bool connected=usb_keyboard_connected();
     if(connected!=last_usb){lv_label_set_text(usb_state,connected?"电脑已连接":"电脑未接入");last_usb=connected;screen_register_activity();}
     pad_audio_status_t audio;audio_stream_status(&audio);
-    lv_label_set_text(home_mic_state,audio.source==PAD_MIC_OFF?"准备就绪":audio.source==PAD_MIC_BOARD?"板载麦克风输入中":"遥控器语音输入中");
+    bool speaking=audio.source!=PAD_MIC_OFF;
+    lv_label_set_text(home_mic_state,audio.source==PAD_MIC_OFF?"语音待机":audio.source==PAD_MIC_BOARD?"板载输入中":"遥控器输入中");
+    lv_obj_set_style_bg_color(home_mic_chip,lv_color_hex(speaking?0xf4e9e3:WHITE),0);
+    lv_obj_set_style_bg_color(home_mic_dot,lv_color_hex(speaking?BLUE:0x91958b),0);
+    lv_obj_set_style_text_color(home_mic_state,lv_color_hex(speaking?0x843f28:DARK),0);
     lv_obj_set_style_bg_color(home_mic_button,lv_color_hex(audio.source!=PAD_MIC_OFF?0x30322d:BLUE),0);
     lv_obj_set_style_text_color(lv_obj_get_child(home_mic_button,0),lv_color_hex(WHITE),0);
     const char *states[]={"正在初始化","未连接","正在搜索","正在连接","正在配对","正在读取按键","已连接","连接失败"};
@@ -317,6 +321,10 @@ static void screen_timeout_refresh(void) {
     for(int i=0;i<6;i++)if(screen_timeout_minutes==screen_timeout_choices[i]){
         lv_label_set_text(screen_timeout_value,screen_timeout_names[i]);break;
     }
+    char timeout_status[40];
+    if(screen_timeout_minutes)snprintf(timeout_status,sizeof(timeout_status),"%u 分钟后息屏",(unsigned)screen_timeout_minutes);
+    else snprintf(timeout_status,sizeof(timeout_status),"永不息屏");
+    lv_label_set_text(home_timeout_state,timeout_status);
 }
 static void screen_timeout_choose(lv_event_t *e) {
     uint16_t minutes=(uint16_t)(uintptr_t)lv_event_get_user_data(e);
@@ -456,26 +464,27 @@ static void create_ui(void){
     box(home_mic_button,60,86,6,15,WHITE,3);
     box(home_mic_button,48,99,30,6,WHITE,3);
     raise_home_button(button(home,"回车",924,259,303,119,0x30322d,WHITE,touch_key,(void*)(uintptr_t)0x28),true);
-    home_mic_state=label(home,"准备就绪",523,410,270,DARK);
-    // Recessed instrument strip: decorative only, never used as a task-status indicator.
-    ornament(home,40,519,1200,1,0xd0d1c9,0);
-    lv_obj_t *groove=ornament(home,74,545,1132,22,0xe3e4dc,5);
-    lv_obj_set_style_border_width(groove,1,0);
-    lv_obj_set_style_border_color(groove,lv_color_hex(0xcccdc4),0);
-    lv_obj_set_style_shadow_width(groove,3,0);
-    lv_obj_set_style_shadow_offset_y(groove,1,0);
-    lv_obj_set_style_shadow_opa(groove,LV_OPA_20,0);
-    for(int i=0;i<14;i++){
-        ornament(home,214+i*26,554,14,5,0xb4b6aa,0);
-        ornament(home,688+i*26,554,14,5,0xb4b6aa,0);
-    }
-    ornament(home,604,554,72,5,BLUE,2);
-    lv_obj_t *left_rivet=ornament(home,50,550,12,12,0xd8d9d1,6);
-    lv_obj_t *right_rivet=ornament(home,1218,550,12,12,0xd8d9d1,6);
-    lv_obj_set_style_border_width(left_rivet,1,0);
-    lv_obj_set_style_border_width(right_rivet,1,0);
-    lv_obj_set_style_border_color(left_rivet,lv_color_hex(0xc2c3ba),0);
-    lv_obj_set_style_border_color(right_rivet,lv_color_hex(0xc2c3ba),0);
+    // The footer mirrors the top status bar and shows real microphone and timeout state.
+    lv_obj_t *footer=box(home,0,558,1280,76,BG,0);
+    ornament(footer,0,0,1280,1,0xd4d5cd,0);
+    ornament(footer,40,34,9,9,BLUE,2);
+    lv_obj_t *footer_brand=label(footer,"SIRI VOICE PAD",62,27,310,MUTED);
+    lv_obj_set_style_text_font(footer_brand,&font_cn18,0);
+    home_mic_chip=box(footer,810,16,195,45,WHITE,7);
+    lv_obj_set_style_border_width(home_mic_chip,1,0);
+    lv_obj_set_style_border_color(home_mic_chip,lv_color_hex(0xd4d5cd),0);
+    home_mic_dot=ornament(home_mic_chip,16,18,9,9,0x91958b,5);
+    home_mic_state=label(home_mic_chip,"语音待机",37,12,150,DARK);
+    lv_obj_set_style_text_font(home_mic_state,&font_cn18,0);
+    lv_obj_t *timeout_chip=box(footer,1016,16,224,45,WHITE,7);
+    lv_obj_set_style_border_width(timeout_chip,1,0);
+    lv_obj_set_style_border_color(timeout_chip,lv_color_hex(0xd4d5cd),0);
+    lv_obj_t *timeout_icon=ornament(timeout_chip,16,14,16,16,WHITE,8);
+    lv_obj_set_style_border_width(timeout_icon,2,0);
+    lv_obj_set_style_border_color(timeout_icon,lv_color_hex(0x6d7068),0);
+    ornament(timeout_icon,8,0,8,16,0x6d7068,0);
+    home_timeout_state=label(timeout_chip,"30 分钟后息屏",42,12,170,DARK);
+    lv_obj_set_style_text_font(home_timeout_state,&font_cn18,0);
     // Settings: independent Bluetooth and mapping pages.
     lv_obj_t *nav=box(settings,33,20,246,532,WHITE,23);label(nav,"设置",25,27,190,DARK);
     tab_bt=button(nav,"蓝牙连接",20,105,206,70,PALE,BLUE,show_bt,NULL);
