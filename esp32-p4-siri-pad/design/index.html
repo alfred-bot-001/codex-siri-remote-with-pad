@@ -25,11 +25,10 @@
   .mic-ring{width:192px;height:192px;border-radius:50%;background:#e6edff;display:grid;place-items:center;padding:15px;margin-top:-8px}
   .mic{width:100%;height:100%;border-radius:50%;background:#245bff;color:#fff;display:grid;place-items:center;box-shadow:0 13px 28px #245bff33}.mic svg{width:68px;height:68px}.mic.active{background:#ee684f;box-shadow:0 0 0 10px #ffdfda,0 13px 28px #ec66434d}.mic.active svg{animation:breath 1.4s ease-in-out infinite}
   @keyframes breath{50%{transform:scale(1.08)}}
-  .mic-state{font-size:27px;font-weight:750;margin-top:16px}.mic-sub{font-size:16px;color:#7e8b9c;text-align:center;max-width:300px;line-height:1.5}
+  .mic-state{font-size:27px;font-weight:750;margin-top:16px}
   .controls{display:flex;flex-direction:column}.key-row{display:grid;grid-template-columns:1fr 1fr;gap:13px}.key{height:108px;border-radius:18px;background:#f1f4f8;font-size:52px;font-weight:500;color:#1c2938}.key.enter{height:130px;width:100%;background:#245bff;color:#fff;font-size:29px;font-weight:750;margin-top:14px;box-shadow:0 10px 21px #245bff2c}
   .key.space{height:79px;width:100%;background:#f1f4f8;font-size:19px;font-weight:700;margin-top:14px}.key:disabled,.app-btn:disabled,.small-key:disabled,.mic:disabled{opacity:.45;cursor:default}
   .controls .hint{font-size:14px;color:#8b97a5;line-height:1.55;margin-top:auto;padding-top:12px}
-  footer{height:60px;flex:none;display:flex;align-items:center;padding:0 40px;border-top:1px solid #e7eaf0;color:#7b899b;font-size:14px;gap:20px}.footer-value{color:#47586d;font-weight:650}.footer-right{margin-left:auto}
   .scrim{position:absolute;inset:0;background:#14223565;display:none;z-index:3}.scrim.open{display:block}
   .drawer{position:absolute;right:0;top:0;bottom:0;width:510px;background:#f8f9fb;z-index:4;box-shadow:-18px 0 50px #14223530;transform:translateX(103%);transition:transform .25s ease;display:flex;flex-direction:column}.drawer.open{transform:translateX(0)}
   .drawer-header{height:92px;display:flex;align-items:center;padding:0 28px;gap:14px;border-bottom:1px solid #e5e9ef}.drawer-title{font-size:27px;font-weight:750}.close{width:47px;height:47px;background:#e9edf2;border-radius:12px;font-size:24px;margin-left:auto;color:#516073}
@@ -50,7 +49,7 @@
   :root{color:#272824;background:#d8d8d2;font-weight:600;font-synthesis:weight}
   .frame{background:#efeee9;border-color:#292a27;border-radius:16px;box-shadow:0 28px 75px #2728242c}
   button:focus-visible{outline-color:#dc531f}
-  header,footer,.drawer-header{border-color:#d4d5cd}
+  header,.drawer-header{border-color:#d4d5cd}
   .brand{font-weight:800;letter-spacing:-.7px}
   .prototype{color:#676962;background:#e5e5df;border-radius:5px;font-weight:700}
   .connection,.settings-launch,.panel,.settings-nav,.settings-content,.setting-card,.candidate,.empty{background:#f8f7f3;border-color:#d4d5cd;box-shadow:0 2px 0 #d4d5cd;border-radius:10px;color:#272824}
@@ -63,9 +62,8 @@
   .app-name{font-weight:800}.app-note{opacity:1;color:#5b5e56;font-weight:650}
   .small-key,.key,.key.space,.settings-back,.close{background:#e5e5df;color:#272824;border:1px solid #c8c9c1;border-radius:8px;box-shadow:0 3px 0 #c8c9c1;font-weight:750}
   .mic-ring{background:#e4e3dd}.mic{background:#dc531f;box-shadow:0 4px 0 #a83b14,inset 0 1px 0 #ffffff55}.mic.active{background:#272824;box-shadow:0 0 0 9px #e5c2b3,0 4px 0 #11120f}
-  .mic-state{font-weight:800}.mic-sub,.controls .hint{color:#5d6058;font-weight:650}
+  .mic-state{font-weight:800}.controls .hint{color:#5d6058;font-weight:650}
   .key{font-weight:700}.key.enter{background:#30322d;color:#fff;box-shadow:0 4px 0 #171814;border-color:#30322d;font-weight:800}
-  footer{color:#62655d}.footer-value{color:#30322d;font-weight:750}
   .drawer{background:#efeee9;box-shadow:-18px 0 50px #27282430}.drawer-title,.settings-nav-title,.section-heading,.editor h2{font-weight:800}
   .device-title,.scan-head,.mapping-row strong{font-weight:750}.device-detail,.drawer-note,.section-subtitle,.mapping-note,.candidate small{color:#5f625a;font-weight:600}
   .action,.scan-head button,.edit-map,.settings-tab,.mapping-value{background:#e5e5df;color:#30322d;border-radius:7px;font-weight:750}
@@ -82,10 +80,10 @@
   .home-apps .app-btn{height:146px;margin:0;padding:27px 29px;background:#f8f7f3;color:#272824;justify-content:center;gap:14px;font-weight:800}
   .home-apps .app-btn{flex-direction:row;align-items:center;justify-content:flex-start;gap:20px}
   .home-apps .app-icon{width:56px;height:56px;flex:none;opacity:.88}
-  .home-apps .app-copy{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .home-apps .app-copy{display:flex;flex-direction:column;gap:10px;min-width:0}
   .home-apps .app-btn.claude{background:#f8f7f3;color:#272824}
   .home-apps .app-name{font-size:32px;line-height:1.05}
-  .home-apps .app-note{font-size:20px;letter-spacing:.3px;color:#5b5e56}
+  .home-apps .app-note{font-size:16px;letter-spacing:.2px;color:#5b5e56}
   .home-apps .app-btn.selected,.home-apps .app-btn.claude.selected{background:#efeee9;border-color:#85877e;box-shadow:inset 0 2px 5px #2728241c}
   .home-controls{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:center;gap:38px;margin-top:51px}
   .home-controls .key{width:100%;height:120px;display:flex;align-items:center;justify-content:center;gap:18px;font-size:29px;background:#f8f7f3}
@@ -96,9 +94,24 @@
   .home-voice .mic{width:124px;height:124px;flex:none}
   .home-voice .mic svg{width:54px;height:54px}
   .home-voice .mic-state{font-size:26px;margin:6px 0 0}
-  .home-voice .mic-sub{font-size:17px;max-width:none;line-height:1.4}
-  .home-hint{font-size:16px;color:#64665f;margin-top:auto;line-height:1.4;font-weight:650}
-  @media(max-width:900px){main.home-page{padding:19px 22px 18px}.home-apps{gap:11px}.home-apps .app-btn{height:122px;padding:16px;gap:12px}.home-apps .app-icon{width:38px;height:38px}.home-apps .app-copy{gap:8px}.home-apps .app-name{font-size:23px}.home-apps .app-note{font-size:15px}.home-controls{gap:17px;margin-top:25px}.home-controls .key,.home-controls .key.space{height:86px;font-size:19px}.home-controls .key.enter{font-size:19px}.key-symbol{font-size:34px}.home-voice .mic{width:85px;height:85px}.home-voice .mic svg{width:40px;height:40px}.home-voice .mic-state{font-size:20px}.home-voice .mic-sub{font-size:13px}.home-hint{font-size:13px}}
+  .toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:6;max-width:80%;padding:11px 19px;border-radius:8px;background:#30322d;color:#fff;font-size:16px;font-weight:700;box-shadow:0 8px 24px #27282435;text-align:center}
+  /* A small physical lift keeps the Braun controls tactile without looking glossy. */
+  .home-apps .app-btn,.home-controls .key{
+    transform:translateY(-2px);
+    border:1px solid #c6c7bf;
+    box-shadow:0 4px 0 #c6c7bf,0 10px 17px #2728241c,inset 0 1px 0 #ffffff;
+    transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease;
+  }
+  .home-apps .app-btn:hover,.home-controls .key:hover{transform:translateY(-4px);box-shadow:0 6px 0 #c6c7bf,0 15px 21px #27282422,inset 0 1px 0 #ffffff}
+  .home-apps .app-btn:active,.home-controls .key:active{transform:translateY(2px);box-shadow:0 1px 0 #bcbdb5,inset 0 2px 5px #27282424}
+  .home-controls .key.enter{border-color:#252722;box-shadow:0 4px 0 #171814,0 11px 18px #27282435,inset 0 1px 0 #ffffff24}
+  .home-controls .key.enter:hover{box-shadow:0 6px 0 #171814,0 16px 24px #2728243b,inset 0 1px 0 #ffffff24}
+  .home-controls .key.enter:active{box-shadow:0 1px 0 #171814,inset 0 2px 5px #11120f}
+  .home-voice .mic{transform:translateY(-2px);box-shadow:0 5px 0 #a83b14,0 13px 20px #a83b1440,inset 0 1px 0 #ffffff55;transition:transform .16s ease,box-shadow .16s ease}
+  .home-voice .mic:hover{transform:translateY(-4px);box-shadow:0 7px 0 #a83b14,0 18px 25px #a83b1447,inset 0 1px 0 #ffffff55}
+  .home-voice .mic:active{transform:translateY(2px);box-shadow:0 1px 0 #a83b14,inset 0 2px 6px #7f2e13}
+  @media(prefers-reduced-motion:reduce){.home-apps .app-btn,.home-controls .key,.home-voice .mic{transition:none}}
+  @media(max-width:900px){main.home-page{padding:19px 22px 18px}.home-apps{gap:11px}.home-apps .app-btn{height:122px;padding:16px;gap:12px}.home-apps .app-icon{width:38px;height:38px}.home-apps .app-copy{gap:7px}.home-apps .app-name{font-size:23px}.home-apps .app-note{font-size:12px}.home-controls{gap:17px;margin-top:25px}.home-controls .key,.home-controls .key.space{height:86px;font-size:19px}.home-controls .key.enter{font-size:19px}.key-symbol{font-size:34px}.home-voice .mic{width:85px;height:85px}.home-voice .mic svg{width:40px;height:40px}.home-voice .mic-state{font-size:20px}}
 </style>
 </head>
 <body>
@@ -106,8 +119,7 @@
   <header><div class="brand">语音输入</div><div class="prototype">5 寸横屏 · 交互原型</div><div class="header-right"><div class="usb" id="usb">▣ <span>电脑已连接</span></div><button class="connection" id="open-settings" aria-label="打开蓝牙设置"><span class="bt-symbol">ᛒ</span><span>Apple TV 遥控器</span><span class="dot" id="bt-dot"></span><span id="bt-short">已连接</span><span aria-hidden="true">›</span></button><button class="settings-launch" id="settings-launch">⚙ 设置</button></div></header>
   <main class="home-page" id="home-page">
     <section class="home-apps" aria-label="应用快捷键"><button class="app-btn" id="gpt"><img class="app-icon" src="icons/openai.svg" alt=""><span class="app-copy"><span class="app-name">ChatGPT</span><span class="app-note">⌃ ⌥ ⌘ G</span></span></button><button class="app-btn claude" id="claude"><img class="app-icon" src="icons/claude.svg" alt=""><span class="app-copy"><span class="app-name">Claude</span><span class="app-note">⌃ ⌥ ⌘ C</span></span></button><button class="app-btn" id="chrome"><img class="app-icon" src="icons/googlechrome.svg" alt=""><span class="app-copy"><span class="app-name">Chrome</span><span class="app-note">⌃ ⌥ ⌘ B</span></span></button></section>
-    <section class="home-controls" aria-label="键盘和语音控制"><button class="key space" id="space"><span class="key-symbol" aria-hidden="true">⎵</span>空格</button><div class="home-voice"><button class="mic" id="mic" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="23" y="7" width="18" height="32" rx="9" fill="currentColor" stroke="none"/><path d="M15 31a17 17 0 0 0 34 0M32 49v8M23 57h18"/></svg></button><div class="mic-state" id="mic-state">准备就绪</div><div class="mic-sub" id="mic-sub">点按使用板载麦克风</div></div><button class="key enter" id="enter"><span class="key-symbol" aria-hidden="true">↵</span>回车</button></section>
-    <div class="home-hint">遥控器：左 / 右唤起应用 · 减 / 加移动光标 · 小电视切换输入法</div>
+    <section class="home-controls" aria-label="键盘和语音控制"><button class="key space" id="space"><span class="key-symbol" aria-hidden="true">⎵</span>空格</button><div class="home-voice"><button class="mic" id="mic" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="23" y="7" width="18" height="32" rx="9" fill="currentColor" stroke="none"/><path d="M15 31a17 17 0 0 0 34 0M32 49v8M23 57h18"/></svg></button><div class="mic-state" id="mic-state">准备就绪</div></div><button class="key enter" id="enter"><span class="key-symbol" aria-hidden="true">↵</span>回车</button></section>
   </main>
   <section class="settings-page" id="settings-page" aria-label="设置页面">
     <nav class="settings-nav"><div class="settings-nav-title">设置</div><button class="settings-tab active" id="tab-bluetooth">ᛒ　蓝牙连接</button><button class="settings-tab" id="tab-mapping">⌨　按键映射</button><button class="settings-back" id="settings-back">←　返回主页</button></nav>
@@ -116,7 +128,7 @@
       <section class="settings-section" id="mapping-section" aria-label="快捷键映射设置"><h2 class="section-heading">按键映射</h2><div class="mapping-toolbar"><p class="section-subtitle">点“编辑”配置遥控器按键；修改会保存在这个浏览器中。</p><div class="mapping-actions"><button class="action" id="export-mapping">导出配置</button><button class="action" id="reset-mapping">恢复默认</button></div></div><div class="mapping-list" id="mapping-list"></div><div class="mapping-note">快捷键可选择 Control、Option、Command、Shift 与主键。语音键可设为左／右 Option 加遥控器麦克风。此页是交互原型，尚未写入新板固件。</div></section>
     </div>
   </section>
-  <footer><span>遥控器语音键</span><span class="footer-value">右 Option + 遥控器麦克风</span><span class="footer-right" id="toast">就绪</span></footer>
+  <div class="toast" id="toast" role="status" hidden></div>
   <div class="editor-scrim" id="editor-scrim" hidden><div class="editor" role="dialog" aria-modal="true" aria-labelledby="editor-title"><div class="editor-head"><h2 id="editor-title">编辑按键</h2><button class="close" id="editor-close" aria-label="关闭编辑器">×</button></div><label for="action-type">按下后执行</label><select id="action-type"><option value="keyboard">发送键盘按键 / 快捷键</option><option value="voice">使用遥控器麦克风</option><option value="none">不执行动作</option></select><div id="keyboard-fields"><label>修饰键（可多选）</label><div class="modifier-row" id="modifier-row"></div><label for="main-key">主键</label><select id="main-key"></select></div><div id="voice-fields" hidden><label for="voice-option">语音输入触发键</label><select id="voice-option"><option value="rightOption">右 Option</option><option value="leftOption">左 Option</option></select></div><div class="editor-preview" id="editor-preview"></div><div class="editor-error" id="editor-error" hidden></div><div class="editor-actions"><button class="action" id="editor-cancel">取消</button><button class="action primary" id="editor-save">保存映射</button></div></div></div>
 </div>
 <script>
@@ -150,7 +162,7 @@ function loadMapping(){try{let raw=JSON.parse(localStorage.getItem('siri-pad-p4-
 let mapping=loadMapping(),connected=true,known=true,scanning=false,found=false,selected=false,boardMic=false,remoteMic=false,editing=null,editDraft=null;
 function saveMapping(){try{localStorage.setItem('siri-pad-p4-mapping-v1',JSON.stringify(mapping));return true}catch(e){toast('浏览器不能保存本地设置');return false}}
 function formatAction(a){if(a.type==='none')return '未设置';if(a.type==='voice')return (a.option==='leftOption'?'左':'右')+' Option + 遥控器麦克风';return a.mods.map(m=>modNames[m]).join('')+keyNames[a.key]}
-function toast(message){$('toast').textContent=message;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').textContent='就绪',2700)}
+function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').hidden=true,2700)}
 function renderBluetooth(){
  $('bt-dot').className='dot '+(connected?'':scanning?'search':'off');$('bt-short').textContent=connected?'已连接':scanning?'搜索中':'未连接';
  $('device-title').textContent=known?'Apple TV 遥控器':'未配对遥控器';
@@ -162,10 +174,8 @@ function renderBluetooth(){
 }
 function renderMain(){
  $('mic').classList.toggle('active',boardMic||remoteMic);$('mic-state').textContent=remoteMic?'遥控器麦克风输入中':boardMic?'板载麦克风输入中':'准备就绪';
- $('mic-sub').textContent=remoteMic?'松开遥控器语音键即停止':boardMic?'再次点按麦克风停止':'点按使用板载麦克风';
  $('gpt').querySelector('.app-note').textContent=formatAction(mapping.remoteLeft);
  $('claude').querySelector('.app-note').textContent=formatAction(mapping.remoteRight);
- document.querySelector('.footer-value').textContent=formatAction(mapping.voice);
 }
 function renderMapping(){
  const list=$('mapping-list');list.replaceChildren();

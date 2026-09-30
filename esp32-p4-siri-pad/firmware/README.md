@@ -44,4 +44,4 @@ idf.py -B build/p4_ble \
 
 已在实板验证：应用刷写哈希、1280×720 显示和触控驱动初始化、C6 SDIO 能力响应、蓝牙协议栈就绪、遥控器加密绑定、MTU 185、HID 通知订阅和保存身份后的自动重连；主动断开、扫描启动及 20 秒超时也已验证。2026-09-29 早期键盘固件曾被 Mac 识别为 `Siri Voice Pad P4 Keyboard`（VID 303a / PID 4015），但按键队列诊断发现 USB 事件等待阻塞发送任务，已改为独立任务。新复合固件 PID 4016 已刷入，显示、UAC 驱动、ES7210 48 kHz 和 C6 均成功初始化。随后 Mac 已枚举到 `Siri Voice Pad P4` 和 UAC `Mic stream`；用户已确认新主页布局和触摸反馈正常。实际键盘字符输入和录音质量仍需现场验收。主动断开后遥控器可能需要按键唤醒才能重连。
 
-字形子集来自 Adobe 官方 Source Han Sans SC Bold，许可在 `licenses/SourceHanSansSC-OFL.txt`。重新生成需 `lv_font_conv` 1.5.3，运行 `python tools/generate_font.py /path/to/lv_font_conv`；脚本首次从 Adobe 的 GitHub 发布分支下载固定 SHA-256 的字体源文件。
+字形子集来自 Adobe 官方 Source Han Sans SC Bold，许可在 `licenses/SourceHanSansSC-OFL.txt`。主页标题使用 28px，应用快捷键和短暂提示使用 18px。重新生成需 `lv_font_conv` 1.5.3，分别运行 `python tools/generate_font.py /path/to/lv_font_conv 28` 与 `python tools/generate_font.py /path/to/lv_font_conv 18`；脚本首次从 Adobe 的 GitHub 发布分支下载固定 SHA-256 的字体源文件。
