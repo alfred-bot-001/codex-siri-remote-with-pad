@@ -105,6 +105,7 @@ static QueueHandle_t logs;
 static int log_sink(const char *fmt,va_list args){char line[192]={0};int n=vsnprintf(line,sizeof(line),fmt,args);if(logs)xQueueSend(logs,line,0);return n;}
 static void app_task(void *arg) {
  (void)arg;bool pending=false;uint8_t report[8];uint32_t last=0;
+ char quota_line[32];size_t quota_len=0;
  uint8_t *snapshot=NULL;size_t snap_size=0,snap_pos=0;
  for(;;){
   pad_service();
@@ -113,7 +114,18 @@ static void app_task(void *arg) {
   if(pending && tud_hid_ready() && tud_hid_report(0,report,8)){memcpy(last_hid,report,8);pending=false;}
   while(tud_cdc_available()){
    char c=(char)tud_cdc_read_char();
-   if(c=='S')pad_request_pairing();
+   if(quota_len){
+    if(c=='\n'){
+     quota_line[quota_len]=0;int codex,claude;char tail;
+     if(sscanf(quota_line,"Q %d %d %c",&codex,&claude,&tail)==2)
+      pad_quota_update(codex,claude);
+     quota_len=0;
+    }else if(quota_len<sizeof(quota_line)-1)quota_line[quota_len++]=c;
+    else quota_len=0;
+    continue;
+   }
+   if(c=='Q'){quota_line[0]='Q';quota_len=1;}
+   else if(c=='S')pad_request_pairing();
    else if(c=='X')pad_cancel_voice();
    else if(c=='D')pad_display_diagnostics();
    else if(c=='L')pad_display_backlight();
@@ -127,7 +139,7 @@ static void app_task(void *arg) {
     SET_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG,USB_SERIAL_JTAG_USB_PAD_ENABLE);
     REG_WRITE(RTC_CNTL_OPTION1_REG,RTC_CNTL_FORCE_DOWNLOAD_BOOT);esp_restart();
    }
-   else if(c=='P'&&!snapshot){snapshot=pad_ui_snapshot(&snap_size);snap_pos=0;if(snapshot){char header[64];int n=snprintf(header,sizeof(header),"FRAME 320 480 %u\n",(unsigned)snap_size);tud_cdc_write(header,n);tud_cdc_write_flush();}}
+   else if(c=='P'&&!snapshot){snapshot=pad_ui_snapshot(&snap_size);snap_pos=0;if(snapshot){char header[64];int n=snprintf(header,sizeof(header),"FRAME 480 320 %u\n",(unsigned)snap_size);tud_cdc_write(header,n);tud_cdc_write_flush();}}
 
   }
   if(snapshot){

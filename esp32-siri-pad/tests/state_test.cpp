@@ -67,5 +67,12 @@ int main(){
   // USB reconnect also requires release before another arrow press.
   pad_usb_connected(false);pad_usb_connected(true);assert(drain().back()==Report{});pad_remote_buttons(entry[0]);assert(drain().empty());pad_remote_buttons(0);pad_remote_buttons(entry[0]);assert(drain().back()==arrow);
  }
+ // A saved mapping changes the physical button and a chord remains a single pulse.
+ reset();pad_map_entry_t mapped{PAD_MAP_KEY,0x05,0x0d,0};pad_mapping_set(PAD_LEFT,&mapped);
+ pad_remote_buttons(0x1000);r=drain();assert(r.size()==2&&r[0][0]==0x0d&&r[0][2]==0x05&&r[1]==Report{});
+ pad_remote_buttons(0);pad_map_entry_t voice{PAD_MAP_VOICE,0,0,0};pad_mapping_set(PAD_VOICE,&voice);
+ pad_remote_buttons(0x20);r=drain();assert(r.size()==1&&r[0][0]==0x04);
+ pad_remote_buttons(0);assert(drain().back()==Report{});
+ pad_mapping_reset();
  puts("PASS: 20 baseline scenarios plus volume-arrow hold, overlap and disconnect checks");
 }

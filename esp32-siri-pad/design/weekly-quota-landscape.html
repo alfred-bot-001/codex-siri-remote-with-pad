@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Siri Voice Pad · 3.5 寸横屏额度设计</title>
+<style>
+  :root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#282923;font-synthesis:none}
+  *{box-sizing:border-box}
+  html,body{width:100%;height:100%;margin:0}
+  body{display:grid;place-items:center;background:#222}
+  button{font:inherit;cursor:pointer}
+  .screen{position:relative;width:480px;height:320px;overflow:hidden;background:#efeee9;border:1px solid #c5c3bb}
+  .top{height:38px;background:#f8f7f3;border-bottom:1px solid #d5d3cb;display:flex;align-items:center;padding:0 10px;gap:9px}
+  .brand{font-size:12px;font-weight:800;letter-spacing:.45px;white-space:nowrap}
+  .connection{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:10px;font-weight:650;color:#60635d;white-space:nowrap}
+  .dot{width:7px;height:7px;border-radius:50%;background:#18a26c;display:inline-block;margin-right:3px}
+  .settings{height:27px;padding:0 10px;border:1px solid #d7d5cd;border-radius:7px;background:#e8e7e0;color:#292b27;font-size:12px;font-weight:700;box-shadow:0 2px 2px #24241c17}
+  .apps{position:absolute;left:9px;top:45px;width:283px;display:grid;gap:7px}
+  .app{height:61px;width:100%;border:1px solid #d6d2ca;border-radius:10px;background:#fbfaf7;box-shadow:0 3px 0 #b9b9af,0 5px 7px #29292320;display:flex;align-items:center;text-align:left;padding:0 11px;gap:12px}
+  .app:active,.key:active,.settings:active,.mic:active{transform:translateY(2px);box-shadow:0 1px 1px #29292322}
+  .icon{width:28px;height:28px;flex:none;display:block}
+  .app-content{min-width:0;flex:1;display:block}
+  .app-head{display:flex;align-items:baseline;gap:6px}
+  .name{font-size:18px;line-height:1.1;font-weight:760;letter-spacing:-.35px}
+  .percent{margin-left:auto;font-size:18px;line-height:1;font-weight:850;font-variant-numeric:tabular-nums}
+  .app.gpt .percent{color:#087c62}
+  .app.anthropic .percent{color:#a55438}
+  .quota-caption{margin-top:2px;color:#777870;font-size:10px;font-weight:650;line-height:1.1}
+  .track{display:block;height:4px;margin-top:5px;border-radius:4px;background:#e0dfd7;overflow:hidden}
+  .fill{display:block;height:100%;border-radius:4px}
+  .gpt .fill{width:63%;background:#12a27d}
+  .anthropic .fill{width:93%;background:#ca7852}
+  .chrome-note{margin-top:3px;color:#777870;font-size:11px;font-weight:600}
+  .voice-panel{position:absolute;left:301px;top:45px;width:170px;height:196px;border:1px solid #d9d7cf;border-radius:12px;background:#f8f7f3;box-shadow:0 3px 0 #babbb3;display:flex;flex-direction:column;align-items:center}
+  .voice-label{margin-top:12px;color:#6c6d66;font-size:11px;font-weight:760;letter-spacing:.2px}
+  .mic{width:109px;height:109px;margin-top:8px;border:0;border-radius:50%;background:#df5422;color:#fff;display:grid;place-items:center;box-shadow:0 0 0 6px #f4d8cb,0 4px 0 #ae3f1b;transition:background .18s,transform .18s}
+  .mic svg{width:53px;height:53px;fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+  .voice-state{margin-top:13px;font-size:15px;font-weight:800}
+  .voice-panel.active .mic{background:#30322d;box-shadow:0 0 0 6px #e3c5b6,0 4px 0 #1b1d19}
+  .keys{position:absolute;left:9px;right:9px;top:248px;height:50px;display:grid;grid-template-columns:89px 92px 1fr 89px;gap:7px}
+  .key{border:1px solid #d4d2ca;border-radius:10px;background:#faf9f5;color:#272824;box-shadow:0 3px 0 #b7b8b0;font-size:17px;font-weight:760}
+  .key.arrow{font-family:Arial,sans-serif;font-size:34px;line-height:1;font-weight:400}
+  .key.enter{background:#30322d;border-color:#30322d;color:#fff;box-shadow:0 3px 0 #191b18;font-size:20px;font-weight:800}
+  .bottom{position:absolute;left:0;right:0;bottom:0;height:17px;background:#e6e5df;border-top:1px solid #d1d0c8;display:flex;align-items:center;padding:0 10px;color:#71736e;font-size:9px;font-weight:700;letter-spacing:.2px}
+  .bottom span:last-child{margin-left:auto}
+  @media (min-width:900px) and (min-height:600px){.screen{transform:scale(2)}}
+</style>
+</head>
+<body>
+<main class="screen" aria-label="Siri Voice Pad 480 乘 320 横屏设计图">
+  <header class="top"><span class="brand">SIRI VOICE PAD</span><div class="connection"><span><i class="dot"></i>遥控器已连接</span><span><i class="dot"></i>USB 已连接</span></div><button class="settings" type="button">设置</button></header>
+  <section class="apps" aria-label="应用快捷键">
+    <button class="app gpt" type="button"><img class="icon" src="icons/openai.svg" alt=""><span class="app-content"><span class="app-head"><span class="name">ChatGPT</span><span class="percent">63%</span></span><span class="quota-caption">Codex 每周剩余</span><span class="track"><span class="fill"></span></span></span></button>
+    <button class="app anthropic" type="button"><img class="icon" src="icons/claude.svg" alt=""><span class="app-content"><span class="app-head"><span class="name">Claude</span><span class="percent">93%</span></span><span class="quota-caption">Claude 每周剩余</span><span class="track"><span class="fill"></span></span></span></button>
+    <button class="app" type="button"><img class="icon" src="icons/googlechrome.svg" alt=""><span class="app-content"><span class="app-head"><span class="name">Chrome</span></span><span class="chrome-note">打开浏览器</span></span></button>
+  </section>
+  <section class="voice-panel" aria-label="板载麦克风状态"><span class="voice-label">麦克风</span><button class="mic" type="button" aria-label="切换板载麦克风"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="24" y="7" width="16" height="32" rx="8" fill="currentColor" stroke="none"/><path d="M16 31a16 16 0 0 0 32 0M32 47v9M23 56h18"/></svg></button><span class="voice-state">语音待机</span></section>
+  <nav class="keys" aria-label="键盘按键"><button class="key arrow" type="button" aria-label="左箭头">‹</button><button class="key" type="button">空格</button><button class="key enter" type="button">↵&nbsp; 回车</button><button class="key arrow" type="button" aria-label="右箭头">›</button></nav>
+  <footer class="bottom"><span>SIRI VOICE PAD</span><span>30 分钟自动息屏</span></footer>
+</main>
+<script>
+  const panel=document.querySelector('.voice-panel');
+  document.querySelector('.mic').addEventListener('click',()=>{
+    panel.classList.toggle('active');
+    panel.querySelector('.voice-state').textContent=panel.classList.contains('active')?'板载输入中':'语音待机';
+  });
+</script>
+</body>
+</html>
